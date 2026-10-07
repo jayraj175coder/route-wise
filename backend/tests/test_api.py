@@ -43,7 +43,7 @@ def test_api_demo_run():
     assert res.status_code == 200
     data = res.json()
     assert data["step"] == 1
-    assert data["optimization_result"]["recommended_route"]["id"] == "demo-route-train-auto"
+    assert data["optimization_result"]["recommended_route"]["id"] == "route-rail-lastmile"
 
 def test_api_what_if():
     payload = {

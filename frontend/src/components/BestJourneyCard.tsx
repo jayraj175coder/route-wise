@@ -192,7 +192,7 @@ export const BestJourneyCard: React.FC<BestJourneyCardProps> = ({
             <p className="text-xs text-slate-400">
               {hasDisruptionTriggered
                 ? 'System adapted route recommendation away from the blocked corridor.'
-                : 'Test engine resilience when live road or transit conditions suddenly deteriorate.'}
+                : 'Test how the engine dynamically adapts when transit signals shift.'}
             </p>
           </div>
         </div>
@@ -201,7 +201,7 @@ export const BestJourneyCard: React.FC<BestJourneyCardProps> = ({
           onClick={onTriggerDisruption}
           className="px-4 py-2 rounded-xl bg-navy-800 hover:bg-navy-700 text-xs font-bold text-brand-orange border border-brand-orange/40 transition-all hover:scale-105 shrink-0"
         >
-          {hasDisruptionTriggered ? 'Reset Highway Conditions' : 'Simulate Road Disruption ("Something changed")'}
+          {hasDisruptionTriggered ? 'Clear Disruption Signal' : 'Re-evaluate Live Corridor ("Something changed")'}
         </button>
       </div>
     </div>

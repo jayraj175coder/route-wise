@@ -4,14 +4,11 @@ import {
   OptimizationResult,
   CandidateRoute,
   ReoptimizeResult,
-  JourneyIntent,
 } from './types/journey';
 import {
   optimizeJourney,
   reoptimizeJourney,
   simulateWhatIf,
-  runDemoScenario,
-  getLocalDemoRoutes,
 } from './services/api';
 import { Navbar } from './components/Navbar';
 import { HeroSearch } from './components/HeroSearch';
@@ -22,7 +19,6 @@ import { InteractiveMap } from './components/InteractiveMap';
 import { EvidenceModal } from './components/EvidenceModal';
 import { ReoptimizeBanner } from './components/ReoptimizeBanner';
 import { WhatIfSimulator } from './components/WhatIfSimulator';
-import { DemoSequenceController } from './components/DemoSequenceController';
 import { DisclaimerFooter } from './components/DisclaimerFooter';
 
 export const App: React.FC = () => {
@@ -49,8 +45,6 @@ export const App: React.FC = () => {
   const [isEvidenceOpen, setIsEvidenceOpen] = useState<boolean>(false);
   const [reoptimizeData, setReoptimizeData] = useState<ReoptimizeResult | null>(null);
   const [hasDisruption, setHasDisruption] = useState<boolean>(false);
-  const [demoStep, setDemoStep] = useState<number>(1);
-  const [showDemoController, setShowDemoController] = useState<boolean>(true);
   const [apiConnected, setApiConnected] = useState<boolean>(true);
 
   // Initial optimization on mount
@@ -80,7 +74,7 @@ export const App: React.FC = () => {
 
     try {
       if (nextDisruption) {
-        const prevId = selectedRoute?.id || 'demo-route-train-auto';
+        const prevId = selectedRoute?.id || 'route-rail-lastmile';
         const reopt = await reoptimizeJourney(request, prevId);
         setReoptimizeData(reopt);
         setOptimizationResult(reopt.optimization_result);
@@ -110,91 +104,17 @@ export const App: React.FC = () => {
     }
   };
 
-  // Hackathon 3-minute guided demo step controller
-  const handleNextDemoStep = async () => {
-    const next = (demoStep % 6) + 1;
-    setDemoStep(next);
-
-    switch (next) {
-      case 1:
-        // Reset to Interview Baseline
-        setRequest((prev) => ({
-          ...prev,
-          origin: 'Dadar, Mumbai',
-          destination: 'Hinjawadi Phase 1, Pune',
-          arrival_deadline: '10:10 AM',
-          max_budget: 1500,
-          intent: 'interview',
-        }));
-        setHasDisruption(false);
-        setReoptimizeData(null);
-        await handleRunOptimize();
-        break;
-
-      case 2:
-        // Trigger Optimize
-        await handleRunOptimize();
-        break;
-
-      case 3:
-        // Focus on Explanation and score breakdown
-        window.scrollTo({ top: 600, behavior: 'smooth' });
-        break;
-
-      case 4:
-        // Inject Disruption
-        setHasDisruption(true);
-        if (selectedRoute) {
-          const reopt = await reoptimizeJourney(request, selectedRoute.id);
-          setReoptimizeData(reopt);
-          setOptimizationResult(reopt.optimization_result);
-          setSelectedRoute(reopt.new_recommended_route);
-        }
-        window.scrollTo({ top: 500, behavior: 'smooth' });
-        break;
-
-      case 5:
-        // Show re-optimization results
-        window.scrollTo({ top: 550, behavior: 'smooth' });
-        break;
-
-      case 6:
-        // What-If Simulator testing
-        window.scrollTo({ top: 1200, behavior: 'smooth' });
-        break;
-    }
-  };
-
-  const handleResetDemo = () => {
-    setDemoStep(1);
-    setHasDisruption(false);
-    setReoptimizeData(null);
-    handleRunOptimize();
-  };
-
   const currentRoute = selectedRoute || optimizationResult?.recommended_route;
 
   return (
     <div className="min-h-screen bg-navy-950 text-slate-100 flex flex-col font-sans selection:bg-brand-orange selection:text-navy-950">
-      {/* Navigation Bar */}
+      {/* Direct Production Navigation Bar */}
       <Navbar
-        onRunDemo={() => setShowDemoController(true)}
         apiConnected={apiConnected}
+        onRefresh={handleRunOptimize}
       />
 
-      <main className="flex-1 space-y-12">
-        {/* Guided Hackathon 3-Minute Demo Stepper */}
-        {showDemoController && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
-            <DemoSequenceController
-              currentStep={demoStep}
-              onNextStep={handleNextDemoStep}
-              onReset={handleResetDemo}
-              isRunning={isLoading}
-            />
-          </div>
-        )}
-
+      <main className="flex-1 space-y-10">
         {/* Hero Section & Search Constraints Form */}
         <HeroSearch
           request={request}
@@ -218,7 +138,7 @@ export const App: React.FC = () => {
 
         {/* Journey Results Section */}
         {currentRoute && optimizationResult && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10 pb-12">
             {/* Top Recommended Route Card */}
             <BestJourneyCard
               route={currentRoute}

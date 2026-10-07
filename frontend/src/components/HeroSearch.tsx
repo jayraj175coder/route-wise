@@ -28,28 +28,17 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
     });
   };
 
-  const handlePresetScenario = (orig: string, dest: string, intent: JourneyIntent, deadline: string, budget: number) => {
-    onChangeRequest({
-      ...request,
-      origin: orig,
-      destination: dest,
-      intent,
-      arrival_deadline: deadline,
-      max_budget: budget,
-    });
-  };
-
   return (
-    <div className="w-full relative overflow-hidden pt-8 pb-12">
+    <div className="w-full relative overflow-hidden pt-6 pb-10">
       {/* Background ambient lighting */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-gradient-to-b from-navy-800/40 via-brand-orange/5 to-transparent blur-3xl pointer-events-none -z-10" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         {/* Hero Headlines */}
-        <div className="text-center space-y-4 max-w-3xl mx-auto">
+        <div className="text-center space-y-3 max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-navy-800/80 border border-brand-orange/30 text-brand-orange text-xs font-semibold backdrop-blur-md shadow-glow-orange">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Hackathon Innovation: Risk-Aware Mobility Decision Engine</span>
+            <span>Deterministic Multi-Objective Route Optimization</span>
           </div>
 
           <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-[1.15]">
@@ -60,27 +49,9 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
           </h1>
 
           <p className="text-base sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
-            RouteWise evaluates time, cost, comfort, and disruption risk to find the journey
-            most likely to get you to your destination successfully.
+            Enter your destination and constraints. RouteWise calculates arrival buffers, transfers,
+            and real-time disruption risks to recommend the best personalized journey.
           </p>
-
-          {/* Quick preset scenario badge */}
-          <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-            <button
-              onClick={() => handlePresetScenario('Dadar, Mumbai', 'Hinjawadi Phase 1, Pune', 'interview', '10:10 AM', 1500)}
-              className="px-3 py-1 rounded-full bg-navy-800/90 hover:bg-navy-700 border border-white/10 text-xs text-slate-300 transition-all hover:border-brand-orange/50 flex items-center gap-1.5"
-            >
-              <span className="w-2 h-2 rounded-full bg-brand-emerald" />
-              <span>Interview Mode • Mumbai → Pune • ₹1,500 • By 10:10 AM</span>
-            </button>
-            <button
-              onClick={() => handlePresetScenario('Andheri, Mumbai', 'Pune Station', 'budget', '11:00 AM', 800)}
-              className="px-3 py-1 rounded-full bg-navy-800/90 hover:bg-navy-700 border border-white/10 text-xs text-slate-300 transition-all hover:border-brand-orange/50 flex items-center gap-1.5"
-            >
-              <span className="w-2 h-2 rounded-full bg-brand-cyan" />
-              <span>Budget Mode • ₹800 Cap • Shivneri / Rail</span>
-            </button>
-          </div>
         </div>
 
         {/* Main Search Glassmorphic Card */}

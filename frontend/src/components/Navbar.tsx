@@ -1,12 +1,12 @@
 import React from 'react';
-import { Compass, ShieldCheck, Zap } from 'lucide-react';
+import { Compass, ShieldCheck, Activity } from 'lucide-react';
 
 interface NavbarProps {
-  onRunDemo: () => void;
   apiConnected: boolean;
+  onRefresh?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onRunDemo, apiConnected }) => {
+export const Navbar: React.FC<NavbarProps> = ({ apiConnected, onRefresh }) => {
   return (
     <nav className="w-full border-b border-white/10 bg-navy-950/80 backdrop-blur-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
@@ -30,18 +30,20 @@ export const Navbar: React.FC<NavbarProps> = ({ onRunDemo, apiConnected }) => {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-navy-900 border border-white/5 text-xs text-slate-300">
-            <span className={`w-2 h-2 rounded-full ${apiConnected ? 'bg-brand-emerald animate-pulse' : 'bg-brand-amber'}`} />
-            <span>{apiConnected ? 'SerpApi Engine Active' : 'Deterministic Demo Mode'}</span>
+          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-navy-900 border border-white/10 text-xs text-slate-300">
+            <span className={`w-2.5 h-2.5 rounded-full ${apiConnected ? 'bg-brand-emerald animate-pulse' : 'bg-brand-amber'}`} />
+            <span className="font-medium">{apiConnected ? 'Optimization Engine Online' : 'Local Engine Ready'}</span>
           </div>
 
-          <button
-            onClick={onRunDemo}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-navy-800 hover:bg-navy-700 text-brand-orange border border-brand-orange/40 text-sm font-semibold transition-all hover:scale-105 shadow-sm"
-          >
-            <Zap className="w-4 h-4 fill-brand-orange" />
-            <span>3-Min Hackathon Demo</span>
-          </button>
+          {onRefresh && (
+            <button
+              onClick={onRefresh}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-navy-800 hover:bg-navy-700 text-xs font-bold text-slate-200 border border-white/10 transition-all hover:border-brand-orange/50"
+            >
+              <Activity className="w-3.5 h-3.5 text-brand-orange" />
+              <span>Refresh Signals</span>
+            </button>
+          )}
         </div>
       </div>
     </nav>

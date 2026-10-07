@@ -18,10 +18,10 @@ from app.api.schemas import (
     DemoRunResponse,
 )
 from app.engine.optimizer import optimize_journey
+from app.services.route_generator import generate_multimodal_candidates
 from app.services.serpapi.client import SerpApiClient
 from app.services.serpapi.disruptions import fetch_live_disruption_signals
 from app.services.serpapi.normalizer import normalize_serpapi_directions
-from app.services.demo_data import get_demo_candidate_routes
 
 router = APIRouter()
 
@@ -42,7 +42,7 @@ def health_check():
 
 @router.post("/journey/optimize", response_model=OptimizationResult)
 def optimize_route(request: JourneyRequest, serp_client: SerpApiClient = Depends(get_serpapi_client)):
-    # 1. Check if live SerpApi data is available or fallback to demo/synthetic candidates
+    # 1. Fetch live SerpApi directions & disruption signals if configured
     candidates: List[CandidateRoute] = []
     
     if serp_client.is_available():
@@ -53,9 +53,9 @@ def optimize_route(request: JourneyRequest, serp_client: SerpApiClient = Depends
             for c in candidates:
                 c.disruption_signals.extend(live_signals)
 
-    # If no live candidates returned (or demo query / keys not configured), use rich demo candidate set
+    # 2. Dynamic multimodal generation tailored to user's exact origin and destination
     if not candidates:
-        candidates = get_demo_candidate_routes(has_disruption=False)
+        candidates = generate_multimodal_candidates(request.origin, request.destination, has_disruption=False)
 
     result = optimize_journey(request, candidates)
 
@@ -75,24 +75,24 @@ def reoptimize_route(req: ReoptimizeRequest):
     'Something changed' -> re-evaluates routes with newly injected/updated disruption event.
     """
     # Load candidate routes with active disruption triggered
-    candidates_with_disruption = get_demo_candidate_routes(has_disruption=True)
+    candidates_with_disruption = generate_multimodal_candidates(
+        req.journey_request.origin, req.journey_request.destination, has_disruption=True
+    )
     new_result = optimize_journey(req.journey_request, candidates_with_disruption)
 
     # Find previous route info
     prev_route = CANDIDATE_STORE.get(req.previous_recommended_route_id)
     if not prev_route:
-        # Fallback to standard demo train route
         prev_route = candidates_with_disruption[0]
 
     new_recommended = new_result.recommended_route or prev_route
 
     cause = (
-        "Severe Expressway blockage at Khandala Ghat (+65 min delay exposure). "
-        "Road-based express options dropped below safety threshold."
+        f"Severe highway delay detected on the {req.journey_request.origin} to {req.journey_request.destination} corridor (+60 min delay exposure)."
     )
     change_summary = (
         f"Route re-evaluated: {new_recommended.mode_summary} (Confidence: {new_recommended.confidence_score:.0f}) "
-        f"is now prioritized over previous choices due to disruption impact."
+        f"is now prioritized over previous choices due to real-time delay exposure."
     )
 
     return ReoptimizeResult(
@@ -109,7 +109,6 @@ def what_if_simulation(req: WhatIfRequest):
     Interactive What-If Simulator:
     Changes constraints or priority weights and recalculates rankings instantly.
     """
-    # Clone request and apply adjustments
     modified_request = copy.deepcopy(req.journey_request)
     if req.adjusted_max_budget is not None:
         modified_request.max_budget = req.adjusted_max_budget
@@ -120,8 +119,9 @@ def what_if_simulation(req: WhatIfRequest):
     if req.adjusted_weights is not None:
         modified_request.weights = req.adjusted_weights
 
-    # Run optimization on current candidate cohort
-    candidates = get_demo_candidate_routes(has_disruption=False)
+    candidates = generate_multimodal_candidates(
+        req.journey_request.origin, req.journey_request.destination, has_disruption=False
+    )
     original_result = optimize_journey(req.journey_request, candidates)
     new_result = optimize_journey(modified_request, candidates)
 
@@ -151,9 +151,8 @@ def what_if_simulation(req: WhatIfRequest):
 def get_journey_by_id(route_id: str):
     route = CANDIDATE_STORE.get(route_id)
     if not route:
-        # Search across demo set
-        demo_candidates = get_demo_candidate_routes(has_disruption=False)
-        for c in demo_candidates:
+        candidates = generate_multimodal_candidates("Origin", "Destination", has_disruption=False)
+        for c in candidates:
             if c.id == route_id:
                 return c
         raise HTTPException(status_code=404, detail="Journey route ID not found")
@@ -186,7 +185,9 @@ def run_demo_scenario(req: DemoRunRequest):
         intent=JourneyIntent.INTERVIEW
     )
 
-    candidates = get_demo_candidate_routes(has_disruption=req.trigger_disruption)
+    candidates = generate_multimodal_candidates(
+        journey_req.origin, journey_req.destination, has_disruption=req.trigger_disruption
+    )
     result = optimize_journey(journey_req, candidates)
 
     step_num = 2 if req.trigger_disruption else 1
