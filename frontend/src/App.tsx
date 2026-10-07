@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   JourneyRequest,
   OptimizationResult,
@@ -12,13 +12,18 @@ import {
 } from './services/api';
 import { Navbar } from './components/Navbar';
 import { HeroSearch } from './components/HeroSearch';
+import { DecisionArchitectureFlow } from './components/DecisionArchitectureFlow';
 import { BestJourneyCard } from './components/BestJourneyCard';
+import { LiveSignalsFeed } from './components/LiveSignalsFeed';
+import { RiskRadar } from './components/RiskRadar';
 import { ScoreBreakdown } from './components/ScoreBreakdown';
-import { AlternativesList } from './components/AlternativesList';
 import { InteractiveMap } from './components/InteractiveMap';
-import { EvidenceModal } from './components/EvidenceModal';
-import { ReoptimizeBanner } from './components/ReoptimizeBanner';
+import { DecisionSensitivity } from './components/DecisionSensitivity';
+import { AlternativesList } from './components/AlternativesList';
 import { WhatIfSimulator } from './components/WhatIfSimulator';
+import { ReoptimizeBanner } from './components/ReoptimizeBanner';
+import { ReoptimizePipelineModal } from './components/ReoptimizePipelineModal';
+import { EvidenceModal } from './components/EvidenceModal';
 import { DisclaimerFooter } from './components/DisclaimerFooter';
 
 export const App: React.FC = () => {
@@ -43,22 +48,30 @@ export const App: React.FC = () => {
   const [selectedRoute, setSelectedRoute] = useState<CandidateRoute | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isEvidenceOpen, setIsEvidenceOpen] = useState<boolean>(false);
+  const [isPipelineOpen, setIsPipelineOpen] = useState<boolean>(false);
   const [reoptimizeData, setReoptimizeData] = useState<ReoptimizeResult | null>(null);
   const [hasDisruption, setHasDisruption] = useState<boolean>(false);
-  const [apiConnected, setApiConnected] = useState<boolean>(true);
+  const [apiConnected] = useState<boolean>(true);
+
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   // Initial optimization on mount
   useEffect(() => {
-    handleRunOptimize();
+    handleRunOptimize(false);
   }, []);
 
-  const handleRunOptimize = async () => {
+  const handleRunOptimize = async (shouldScroll: boolean = true) => {
     setIsLoading(true);
     try {
       const res = await optimizeJourney(request);
       setOptimizationResult(res);
       if (res.recommended_route) {
         setSelectedRoute(res.recommended_route);
+      }
+      if (shouldScroll && resultsRef.current) {
+        setTimeout(() => {
+          resultsRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 150);
       }
     } catch (err) {
       console.error(err);
@@ -67,7 +80,13 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleTriggerDisruptionToggle = async () => {
+  const handleTriggerReoptimize = () => {
+    // Open animated pipeline modal first
+    setIsPipelineOpen(true);
+  };
+
+  const handlePipelineCompleted = async () => {
+    setIsPipelineOpen(false);
     const nextDisruption = !hasDisruption;
     setHasDisruption(nextDisruption);
     setIsLoading(true);
@@ -83,7 +102,7 @@ export const App: React.FC = () => {
         }
       } else {
         setReoptimizeData(null);
-        await handleRunOptimize();
+        await handleRunOptimize(false);
       }
     } catch (err) {
       console.error(err);
@@ -108,56 +127,67 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-navy-950 text-slate-100 flex flex-col font-sans selection:bg-brand-orange selection:text-navy-950">
-      {/* Direct Production Navigation Bar */}
+      {/* Navigation Bar */}
       <Navbar
         apiConnected={apiConnected}
-        onRefresh={handleRunOptimize}
+        onRefresh={() => handleRunOptimize(false)}
       />
 
-      <main className="flex-1 space-y-10">
-        {/* Hero Section & Search Constraints Form */}
+      <main className="flex-1 space-y-12">
+        {/* Landing Page & Journey Input Search Panel */}
         <HeroSearch
           request={request}
           onChangeRequest={setRequest}
-          onOptimize={handleRunOptimize}
+          onOptimize={() => handleRunOptimize(true)}
           isLoading={isLoading}
         />
 
-        {/* Dynamic Re-optimization Notification Banner */}
-        {reoptimizeData && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <ReoptimizeBanner
-              previousRoute={reoptimizeData.previous_route}
-              newRoute={reoptimizeData.new_recommended_route}
-              cause={reoptimizeData.disruption_cause}
-              changeSummary={reoptimizeData.change_summary}
-              onDismiss={() => setReoptimizeData(null)}
-            />
-          </div>
-        )}
-
-        {/* Journey Results Section */}
+        {/* Primary Results Experience Dashboard */}
         {currentRoute && optimizationResult && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10 pb-12">
-            {/* Top Recommended Route Card */}
+          <div ref={resultsRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10 pb-16">
+            {/* Visual Decision Engine Pipeline Flowchart */}
+            <DecisionArchitectureFlow />
+
+            {/* Dynamic Re-optimization Notification Banner */}
+            {reoptimizeData && (
+              <ReoptimizeBanner
+                previousRoute={reoptimizeData.previous_route}
+                newRoute={reoptimizeData.new_recommended_route}
+                cause={reoptimizeData.disruption_cause}
+                changeSummary={reoptimizeData.change_summary}
+                onDismiss={() => setReoptimizeData(null)}
+              />
+            )}
+
+            {/* 1. Large RouteWise Confidence Card & 2. Best Journey Showcase */}
             <BestJourneyCard
               route={currentRoute}
               activePreset={optimizationResult.active_preset}
               onViewEvidence={() => setIsEvidenceOpen(true)}
-              onTriggerDisruption={handleTriggerDisruptionToggle}
+              onTriggerDisruption={handleTriggerReoptimize}
               hasDisruptionTriggered={hasDisruption}
             />
 
-            {/* Why This Route & Normalized Score Breakdown */}
+            {/* 6. Live SerpApi Signals Feed */}
+            <LiveSignalsFeed hasDisruption={hasDisruption} />
+
+            {/* 7. Journey Risk Radar Breakdown */}
+            <RiskRadar route={currentRoute} hasDisruption={hasDisruption} />
+
+            {/* 4. Why This Decision & 5. RouteWise Score Breakdown */}
             <ScoreBreakdown
               route={currentRoute}
               explanation={optimizationResult.explanation}
+              budgetCeiling={request.max_budget}
             />
 
-            {/* Visual Route Corridor Interactive Map */}
+            {/* 3. Live Journey Corridor Interactive Map */}
             <InteractiveMap route={currentRoute} />
 
-            {/* Alternative Candidate Options Comparison */}
+            {/* 9. What Could Change This Decision? (Concrete Thresholds) */}
+            <DecisionSensitivity route={currentRoute} />
+
+            {/* 12. Competing Alternatives Comparison Grid */}
             {optimizationResult.alternative_routes.length > 0 && (
               <AlternativesList
                 routes={[currentRoute, ...optimizationResult.alternative_routes]}
@@ -166,7 +196,7 @@ export const App: React.FC = () => {
               />
             )}
 
-            {/* Interactive What-If Simulator Panel */}
+            {/* 10. Interactive What-If Simulator Panel */}
             <WhatIfSimulator
               request={request}
               onSimulate={handleWhatIfSimulation}
@@ -175,7 +205,13 @@ export const App: React.FC = () => {
         )}
       </main>
 
-      {/* Disruption & News Evidence Modal */}
+      {/* 11. Animated 6-Stage Re-Optimization Pipeline Modal */}
+      <ReoptimizePipelineModal
+        isOpen={isPipelineOpen}
+        onComplete={handlePipelineCompleted}
+      />
+
+      {/* 8. Disruption Evidence Verification Modal */}
       {currentRoute && (
         <EvidenceModal
           isOpen={isEvidenceOpen}
@@ -185,7 +221,7 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* Disclaimer and Positioning Footer */}
+      {/* Mandatory Safety Notice & Positioning Footer */}
       <DisclaimerFooter />
     </div>
   );

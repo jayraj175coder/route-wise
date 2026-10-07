@@ -199,9 +199,9 @@ export const BestJourneyCard: React.FC<BestJourneyCardProps> = ({
 
         <button
           onClick={onTriggerDisruption}
-          className="px-4 py-2 rounded-xl bg-navy-800 hover:bg-navy-700 text-xs font-bold text-brand-orange border border-brand-orange/40 transition-all hover:scale-105 shrink-0"
+          className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-orange to-amber-500 hover:from-brand-orangeHover hover:to-amber-400 text-navy-950 text-xs font-black uppercase tracking-wider transition-all hover:scale-105 shadow-glow-orange shrink-0 flex items-center gap-2"
         >
-          {hasDisruptionTriggered ? 'Clear Disruption Signal' : 'Re-evaluate Live Corridor ("Something changed")'}
+          <span>Something changed? Re-optimize</span>
         </button>
       </div>
     </div>
