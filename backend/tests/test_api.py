@@ -14,6 +14,11 @@ def test_api_health():
     assert res.status_code == 200
     assert res.json()["status"] == "healthy"
 
+def test_api_serpapi_status():
+    res = client.get("/api/serpapi/status")
+    assert res.status_code == 200
+    assert "configured" in res.json()
+
 def test_api_optimize_journey():
     payload = {
         "origin": "Dadar, Mumbai",

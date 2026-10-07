@@ -40,6 +40,11 @@ def health_check():
         "version": "1.0.0"
     }
 
+@router.get("/serpapi/status")
+def check_serpapi_status(serp_client: SerpApiClient = Depends(get_serpapi_client)):
+    """Verifies whether SERPAPI_API_KEY is configured and active."""
+    return serp_client.test_connection()
+
 @router.post("/journey/optimize", response_model=OptimizationResult)
 def optimize_route(request: JourneyRequest, serp_client: SerpApiClient = Depends(get_serpapi_client)):
     # 1. Fetch live SerpApi directions & disruption signals if configured
