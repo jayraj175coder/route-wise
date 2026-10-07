@@ -3,6 +3,12 @@ from app.main import app
 
 client = TestClient(app)
 
+def test_api_root():
+    res = client.get("/")
+    assert res.status_code == 200
+    assert "RouteWise" in res.json()["service"]
+    assert res.json()["docs_url"] == "/docs"
+
 def test_api_health():
     res = client.get("/api/health")
     assert res.status_code == 200

@@ -22,6 +22,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+def root():
+    return {
+        "service": "RouteWise — Risk-Aware Personal Mobility Decision Engine",
+        "status": "online",
+        "docs_url": "/docs",
+        "health_check": "/api/health",
+        "frontend_url": "http://localhost:5173",
+        "message": "Welcome to RouteWise API! Visit /docs for interactive API documentation or open the React frontend at http://localhost:5173."
+    }
+
 app.include_router(api_router, prefix="/api")
 
 if __name__ == "__main__":
