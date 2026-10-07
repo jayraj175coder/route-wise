@@ -11,20 +11,15 @@ import {
   simulateWhatIf,
 } from './services/api';
 import { Navbar } from './components/Navbar';
-import { HeroSearch } from './components/HeroSearch';
-import { DecisionArchitectureFlow } from './components/DecisionArchitectureFlow';
-import { BestJourneyCard } from './components/BestJourneyCard';
-import { LiveSignalsFeed } from './components/LiveSignalsFeed';
-import { RiskRadar } from './components/RiskRadar';
-import { ScoreBreakdown } from './components/ScoreBreakdown';
-import { InteractiveMap } from './components/InteractiveMap';
-import { DecisionSensitivity } from './components/DecisionSensitivity';
-import { AlternativesList } from './components/AlternativesList';
+import { PlanYourJourney } from './components/PlanYourJourney';
+import { RightResultsDashboard } from './components/RightResultsDashboard';
 import { WhatIfSimulator } from './components/WhatIfSimulator';
+import { DecisionSensitivity } from './components/DecisionSensitivity';
 import { ReoptimizeBanner } from './components/ReoptimizeBanner';
 import { ReoptimizePipelineModal } from './components/ReoptimizePipelineModal';
 import { EvidenceModal } from './components/EvidenceModal';
 import { DisclaimerFooter } from './components/DisclaimerFooter';
+import { Sparkles, SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [request, setRequest] = useState<JourneyRequest>({
@@ -36,11 +31,11 @@ export const App: React.FC = () => {
     max_transfers: 2,
     intent: 'interview',
     weights: {
-      time: 0.25,
-      cost: 0.10,
-      reliability: 0.35,
+      time: 0.30,
+      cost: 0.20,
+      reliability: 0.40,
       comfort: 0.10,
-      walking: 0.20,
+      walking: 0.10,
     },
   });
 
@@ -52,26 +47,23 @@ export const App: React.FC = () => {
   const [reoptimizeData, setReoptimizeData] = useState<ReoptimizeResult | null>(null);
   const [hasDisruption, setHasDisruption] = useState<boolean>(false);
   const [apiConnected] = useState<boolean>(true);
+  const [isDemoActive, setIsDemoActive] = useState<boolean>(false);
+  const [showAdvancedTools, setShowAdvancedTools] = useState<boolean>(false);
 
   const resultsRef = useRef<HTMLDivElement>(null);
 
   // Initial optimization on mount
   useEffect(() => {
-    handleRunOptimize(false);
+    handleRunOptimize();
   }, []);
 
-  const handleRunOptimize = async (shouldScroll: boolean = true) => {
+  const handleRunOptimize = async () => {
     setIsLoading(true);
     try {
       const res = await optimizeJourney(request);
       setOptimizationResult(res);
       if (res.recommended_route) {
         setSelectedRoute(res.recommended_route);
-      }
-      if (shouldScroll && resultsRef.current) {
-        setTimeout(() => {
-          resultsRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }, 150);
       }
     } catch (err) {
       console.error(err);
@@ -81,7 +73,6 @@ export const App: React.FC = () => {
   };
 
   const handleTriggerReoptimize = () => {
-    // Open animated pipeline modal first
     setIsPipelineOpen(true);
   };
 
@@ -102,7 +93,7 @@ export const App: React.FC = () => {
         }
       } else {
         setReoptimizeData(null);
-        await handleRunOptimize(false);
+        await handleRunOptimize();
       }
     } catch (err) {
       console.error(err);
@@ -126,92 +117,102 @@ export const App: React.FC = () => {
   const currentRoute = selectedRoute || optimizationResult?.recommended_route;
 
   return (
-    <div className="min-h-screen bg-navy-950 text-slate-100 flex flex-col font-sans selection:bg-brand-orange selection:text-navy-950">
-      {/* Navigation Bar */}
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-800 flex flex-col font-sans selection:bg-[#FF7A1A]/20 selection:text-slate-900">
+      {/* 1. Header Navigation Bar */}
       <Navbar
         apiConnected={apiConnected}
-        onRefresh={() => handleRunOptimize(false)}
+        onRefresh={() => handleRunOptimize()}
+        isDemoActive={isDemoActive}
+        onToggleDemo={() => setIsDemoActive(!isDemoActive)}
       />
 
-      <main className="flex-1 space-y-12">
-        {/* Landing Page & Journey Input Search Panel */}
-        <HeroSearch
-          request={request}
-          onChangeRequest={setRequest}
-          onOptimize={() => handleRunOptimize(true)}
-          isLoading={isLoading}
-        />
+      {/* Main Split-Column Container */}
+      <main className="flex-1 max-w-[1560px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        {/* Dynamic Re-optimization Alert Banner (when disruption triggered) */}
+        {reoptimizeData && (
+          <ReoptimizeBanner
+            previousRoute={reoptimizeData.previous_route}
+            newRoute={reoptimizeData.new_recommended_route}
+            cause={reoptimizeData.disruption_cause}
+            changeSummary={reoptimizeData.change_summary}
+            onDismiss={() => setReoptimizeData(null)}
+          />
+        )}
 
-        {/* Primary Results Experience Dashboard */}
-        {currentRoute && optimizationResult && (
-          <div ref={resultsRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10 pb-16">
-            {/* Visual Decision Engine Pipeline Flowchart */}
-            <DecisionArchitectureFlow />
-
-            {/* Dynamic Re-optimization Notification Banner */}
-            {reoptimizeData && (
-              <ReoptimizeBanner
-                previousRoute={reoptimizeData.previous_route}
-                newRoute={reoptimizeData.new_recommended_route}
-                cause={reoptimizeData.disruption_cause}
-                changeSummary={reoptimizeData.change_summary}
-                onDismiss={() => setReoptimizeData(null)}
-              />
-            )}
-
-            {/* 1. Large RouteWise Confidence Card & 2. Best Journey Showcase */}
-            <BestJourneyCard
-              route={currentRoute}
-              activePreset={optimizationResult.active_preset}
-              onViewEvidence={() => setIsEvidenceOpen(true)}
-              onTriggerDisruption={handleTriggerReoptimize}
-              hasDisruptionTriggered={hasDisruption}
-            />
-
-            {/* 6. Live SerpApi Signals Feed */}
-            <LiveSignalsFeed hasDisruption={hasDisruption} />
-
-            {/* 7. Journey Risk Radar Breakdown */}
-            <RiskRadar route={currentRoute} hasDisruption={hasDisruption} />
-
-            {/* 4. Why This Decision & 5. RouteWise Score Breakdown */}
-            <ScoreBreakdown
-              route={currentRoute}
-              explanation={optimizationResult.explanation}
-              budgetCeiling={request.max_budget}
-            />
-
-            {/* 3. Live Journey Corridor Interactive Map */}
-            <InteractiveMap route={currentRoute} />
-
-            {/* 9. What Could Change This Decision? (Concrete Thresholds) */}
-            <DecisionSensitivity route={currentRoute} />
-
-            {/* 12. Competing Alternatives Comparison Grid */}
-            {optimizationResult.alternative_routes.length > 0 && (
-              <AlternativesList
-                routes={[currentRoute, ...optimizationResult.alternative_routes]}
-                selectedRouteId={currentRoute.id}
-                onSelectRoute={(r) => setSelectedRoute(r)}
-              />
-            )}
-
-            {/* 10. Interactive What-If Simulator Panel */}
-            <WhatIfSimulator
+        {/* 2-Column Responsive Dashboard Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Left Column: Plan your journey */}
+          <div className="lg:col-span-5 xl:col-span-4">
+            <PlanYourJourney
               request={request}
-              onSimulate={handleWhatIfSimulation}
+              onChangeRequest={setRequest}
+              onOptimize={handleRunOptimize}
+              isLoading={isLoading}
             />
           </div>
-        )}
+
+          {/* Right Column: Best Journey + Alternatives + 3 Bottom Cards */}
+          <div className="lg:col-span-7 xl:col-span-8" ref={resultsRef}>
+            {currentRoute && optimizationResult ? (
+              <RightResultsDashboard
+                request={request}
+                optimizationResult={optimizationResult}
+                selectedRoute={currentRoute}
+                onSelectRoute={(r) => setSelectedRoute(r)}
+                onOpenSignalsModal={() => setIsEvidenceOpen(true)}
+                onOpenScoreModal={() => setIsEvidenceOpen(true)}
+              />
+            ) : (
+              /* Loading Skeleton */
+              <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-4 shadow-sm animate-pulse">
+                <div className="w-12 h-12 bg-slate-200 rounded-2xl mx-auto" />
+                <div className="h-6 bg-slate-200 rounded w-1/3 mx-auto" />
+                <div className="h-4 bg-slate-100 rounded w-1/2 mx-auto" />
+                <div className="h-48 bg-slate-100 rounded-xl mt-6" />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Optional Advanced Decision Tools Drawer */}
+        <div className="pt-4 border-t border-slate-200/80">
+          <button
+            onClick={() => setShowAdvancedTools(!showAdvancedTools)}
+            className="flex items-center justify-between w-full p-4 rounded-xl bg-white border border-slate-200/90 shadow-2xs hover:bg-slate-50 transition-all text-left"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                <SlidersHorizontal className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-slate-900">
+                  Advanced Decision Engine: What-If Simulation & Sensitivity Radar
+                </h4>
+                <p className="text-xs text-slate-500">
+                  Simulate rain delays, road blockages, and test decision stability boundaries
+                </p>
+              </div>
+            </div>
+            {showAdvancedTools ? (
+              <ChevronUp className="w-4 h-4 text-slate-400" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-slate-400" />
+            )}
+          </button>
+
+          {showAdvancedTools && currentRoute && (
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+              <DecisionSensitivity route={currentRoute} />
+              <WhatIfSimulator
+                request={request}
+                onSimulate={handleWhatIfSimulation}
+              />
+            </div>
+          )}
+        </div>
       </main>
 
-      {/* 11. Animated 6-Stage Re-Optimization Pipeline Modal */}
-      <ReoptimizePipelineModal
-        isOpen={isPipelineOpen}
-        onComplete={handlePipelineCompleted}
-      />
-
-      {/* 8. Disruption Evidence Verification Modal */}
+      {/* Disruption Evidence Modal */}
       {currentRoute && (
         <EvidenceModal
           isOpen={isEvidenceOpen}
@@ -221,7 +222,13 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* Mandatory Safety Notice & Positioning Footer */}
+      {/* Re-Optimization 6-Stage Pipeline Modal */}
+      <ReoptimizePipelineModal
+        isOpen={isPipelineOpen}
+        onComplete={handlePipelineCompleted}
+      />
+
+      {/* Safety Notice & Footer */}
       <DisclaimerFooter />
     </div>
   );

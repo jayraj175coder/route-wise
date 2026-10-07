@@ -6,73 +6,44 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
   margin: 0;
   padding: 0;
-  background-color: #071A3D;
-  color: #F8FAFC;
+  background-color: #F8FAFC;
+  color: #0F172A;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3, h4, .font-heading {
+h1, h2, h3, h4, h5, .font-heading {
   font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
-}
-
-/* Glassmorphism utility classes */
-.glass-panel {
-  background: rgba(13, 39, 90, 0.45);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.glass-card {
-  background: rgba(15, 45, 105, 0.55);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.10);
-}
-
-.glass-card-hover {
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.glass-card-hover:hover {
-  background: rgba(22, 60, 138, 0.65);
-  border-color: rgba(255, 140, 66, 0.4);
-  transform: translateY(-2px);
-  box-shadow: 0 12px 30px -10px rgba(7, 26, 61, 0.8), 0 0 20px -5px rgba(255, 140, 66, 0.25);
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #030B1C;
+  background: #F1F5F9;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1F4EA3;
+  background: #CBD5E1;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #FF8C42;
+  background: #94A3B8;
 }
 
-/* Leaflet dark theme adjustments */
+/* Leaflet clean light map */
 .leaflet-container {
-  background: #071A3D !important;
+  background: #E2E8F0 !important;
   font-family: 'Inter', sans-serif !important;
-  border-radius: 1rem;
-}
-.leaflet-tile {
-  filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3);
 }
