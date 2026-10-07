@@ -23,6 +23,7 @@ import { DisclaimerFooter } from './components/DisclaimerFooter';
 import { SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
 
 export const App: React.FC = () => {
+  // Default Travel Purpose is GENERAL: Balanced time, cost & comfort
   const [request, setRequest] = useState<JourneyRequest>({
     origin: 'Dadar, Mumbai',
     destination: 'Hinjawadi Phase 1, Pune',
@@ -58,10 +59,11 @@ export const App: React.FC = () => {
     handleRunOptimize();
   }, []);
 
-  const handleRunOptimize = async () => {
+  const handleRunOptimize = async (customReq?: JourneyRequest) => {
     setIsLoading(true);
+    const reqToRun = customReq || request;
     try {
-      const res = await optimizeJourney(request);
+      const res = await optimizeJourney(reqToRun);
       setOptimizationResult(res);
       if (res.recommended_route) {
         setSelectedRoute(res.recommended_route);
@@ -115,6 +117,43 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleSelectRecentSearch = (item: any) => {
+    const updatedReq: JourneyRequest = {
+      ...request,
+      origin: item.origin,
+      destination: item.destination,
+      arrival_deadline: item.deadline || '10:10 AM',
+      max_budget: item.budget || 1500,
+      max_walking_distance_meters: item.walking_limit || 1000,
+      max_transfers: item.max_transfers ?? 2,
+      intent: (item.purpose || 'general') as any,
+    };
+    setRequest(updatedReq);
+    handleRunOptimize(updatedReq);
+  };
+
+  const handleApplyPreferencesToPlanner = (prefs: any) => {
+    // Dynamically adjust weights/limits based on traveler style
+    let updatedWeights = { ...request.weights };
+    if (prefs.travel_style === 'reliability') {
+      updatedWeights = { reliability: 0.50, time: 0.20, cost: 0.15, walking: 0.10, comfort: 0.05 };
+    } else if (prefs.travel_style === 'cheapest') {
+      updatedWeights = { reliability: 0.20, time: 0.15, cost: 0.50, walking: 0.10, comfort: 0.05 };
+    } else if (prefs.travel_style === 'fastest') {
+      updatedWeights = { reliability: 0.25, time: 0.50, cost: 0.10, walking: 0.10, comfort: 0.05 };
+    } else if (prefs.travel_style === 'comfort') {
+      updatedWeights = { reliability: 0.25, time: 0.15, cost: 0.15, walking: 0.15, comfort: 0.30 };
+    }
+
+    const updated = {
+      ...request,
+      max_walking_distance_meters: (prefs.walking_limit || 1.0) * 1000,
+      max_transfers: prefs.max_transfers ?? request.max_transfers,
+      weights: updatedWeights,
+    };
+    setRequest(updated);
+  };
+
   const currentRoute = selectedRoute || optimizationResult?.recommended_route;
 
   return (
@@ -147,7 +186,7 @@ export const App: React.FC = () => {
             <PlanYourJourney
               request={request}
               onChangeRequest={setRequest}
-              onOptimize={handleRunOptimize}
+              onOptimize={() => handleRunOptimize()}
               isLoading={isLoading}
             />
           </div>
@@ -187,13 +226,8 @@ export const App: React.FC = () => {
               <TravelerPreferencesSidebar
                 isOpen={isPreferencesOpen}
                 onClose={() => setIsPreferencesOpen(false)}
-                onSelectRecentSearch={(origin, dest) => {
-                  setRequest({
-                    ...request,
-                    origin,
-                    destination: dest,
-                  });
-                }}
+                onSelectRecentSearch={handleSelectRecentSearch}
+                onApplyPreferencesToPlanner={handleApplyPreferencesToPlanner}
               />
             </div>
           )}

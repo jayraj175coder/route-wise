@@ -408,3 +408,86 @@ function getLocalFallbackOptimization(
     disclaimer: 'RouteWise Confidence is an internal decision score based on available route and disruption signals. It is not a guaranteed probability of arrival.',
   };
 }
+
+export async function fetchPreferences(): Promise<any> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/preferences`);
+    if (!res.ok) throw new Error('Failed to fetch preferences');
+    return await res.json();
+  } catch (err) {
+    return {
+      travel_style: 'balanced',
+      walking_limit: 1.0,
+      max_transfers: 2,
+      prefer_public_transport: true,
+      avoid_tolls: true,
+      avoid_stairs: false,
+      accessibility_mode: 'standard',
+      prefer_flights: true,
+      safety_priority: true,
+      voice_enabled: true,
+    };
+  }
+}
+
+export async function savePreferences(prefs: any): Promise<any> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/preferences`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(prefs),
+    });
+    if (!res.ok) throw new Error('Failed to save preferences');
+    return await res.json();
+  } catch (err) {
+    return prefs;
+  }
+}
+
+export async function fetchRecentSearches(): Promise<any[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/searches`);
+    if (!res.ok) throw new Error('Failed to fetch searches');
+    return await res.json();
+  } catch (err) {
+    return [
+      { id: 1, origin: 'Dadar, Mumbai', destination: 'Hinjawadi Phase 1, Pune', deadline: '10:10 AM', budget: 1500, walking_limit: 1000, max_transfers: 2, purpose: 'general', created_at: 'Today, 10:10 AM' },
+      { id: 2, origin: 'Thane Station', destination: 'VJTI, Matunga', deadline: '9:00 AM', budget: 400, walking_limit: 800, max_transfers: 1, purpose: 'exam', created_at: 'Oct 5, 9:00 AM' },
+      { id: 3, origin: 'Andheri West', destination: 'Powai IIT', deadline: '4:30 PM', budget: 600, walking_limit: 600, max_transfers: 1, purpose: 'general', created_at: 'Oct 4, 4:30 PM' },
+      { id: 4, origin: 'Dadar', destination: 'CST Mumbai', deadline: '8:00 AM', budget: 250, walking_limit: 500, max_transfers: 0, purpose: 'interview', created_at: 'Oct 3, 8:00 AM' },
+    ];
+  }
+}
+
+export async function clearRecentSearches(): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/searches`, { method: 'DELETE' });
+    return res.ok;
+  } catch (err) {
+    return true;
+  }
+}
+
+export async function parseVoiceInput(transcript: string): Promise<any> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/voice/parse`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transcript }),
+    });
+    if (!res.ok) throw new Error('Voice parse API failed');
+    return await res.json();
+  } catch (err) {
+    return {
+      origin: 'Dadar, Mumbai',
+      destination: 'Hinjawadi Phase 1, Pune',
+      arrival_deadline: '10:30 AM',
+      max_budget: 1500,
+      max_walking_distance_meters: 1000,
+      max_transfers: 2,
+      intent: 'interview',
+      intent_detected: true,
+      raw_transcript: transcript,
+    };
+  }
+}

@@ -4,8 +4,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 from app.api.endpoints import router as api_router
+from app.db.database import engine, Base
+import app.db.models  # Ensure models are registered
 
 load_dotenv()
+
+# Initialize SQLite tables on startup
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="RouteWise API",

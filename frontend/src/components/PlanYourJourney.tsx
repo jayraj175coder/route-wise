@@ -29,6 +29,7 @@ import {
   Info,
   SlidersHorizontal,
 } from 'lucide-react';
+import { VoiceInput } from './VoiceInput';
 
 interface PlanYourJourneyProps {
   request: JourneyRequest;
@@ -88,6 +89,17 @@ export const PlanYourJourney: React.FC<PlanYourJourneyProps> = ({
     });
   };
 
+  const handleVoiceApply = (parsed: Partial<JourneyRequest>, autoOptimize?: boolean) => {
+    const updated = {
+      ...request,
+      ...parsed,
+    };
+    onChangeRequest(updated);
+    if (autoOptimize) {
+      setTimeout(() => onOptimize(), 100);
+    }
+  };
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-5 space-y-4">
       {/* 1. Top Panel Sub-Tabs */}
@@ -142,10 +154,13 @@ export const PlanYourJourney: React.FC<PlanYourJourneyProps> = ({
         </p>
       </div>
 
-      {/* Origin & Destination Inputs Box */}
+      {/* 2. Interactive Voice Input Section */}
+      <VoiceInput onApplyJourney={handleVoiceApply} />
+
+      {/* 3. Origin & Destination Inputs Box */}
       <div className="space-y-1.5 relative">
         {/* From Input */}
-        <div className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 transition-all">
+        <div className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 transition-all focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500">
           <div className="flex items-center gap-2.5 flex-1 min-w-0">
             <div className="w-6 h-6 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
               <MapPin className="w-4 h-4 fill-emerald-500 text-white" />
@@ -165,6 +180,7 @@ export const PlanYourJourney: React.FC<PlanYourJourneyProps> = ({
             <button
               onClick={() => onChangeRequest({ ...request, origin: '' })}
               className="p-1 text-slate-400 hover:text-slate-600 rounded"
+              title="Clear origin"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -178,13 +194,14 @@ export const PlanYourJourney: React.FC<PlanYourJourneyProps> = ({
             onClick={handleSwap}
             aria-label="Swap locations"
             className="w-6 h-6 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 flex items-center justify-center shadow-xs transition-all hover:scale-105 active:scale-95"
+            title="Swap Origin and Destination"
           >
             <ArrowUpDown className="w-3 h-3" />
           </button>
         </div>
 
         {/* To Input */}
-        <div className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 transition-all">
+        <div className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 transition-all focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500">
           <div className="flex items-center gap-2.5 flex-1 min-w-0">
             <div className="w-6 h-6 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
               <MapPin className="w-4 h-4 fill-rose-500 text-white" />
@@ -204,6 +221,7 @@ export const PlanYourJourney: React.FC<PlanYourJourneyProps> = ({
             <button
               onClick={() => onChangeRequest({ ...request, destination: '' })}
               className="p-1 text-slate-400 hover:text-slate-600 rounded"
+              title="Clear destination"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -211,12 +229,12 @@ export const PlanYourJourney: React.FC<PlanYourJourneyProps> = ({
         </div>
       </div>
 
-      {/* 4 Constraint Cards in a Row */}
+      {/* 4. FOUR FULLY EDITABLE CONSTRAINT CARDS */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        {/* Arrive by */}
-        <div className="p-2 rounded-xl border border-slate-200 bg-white space-y-0.5">
+        {/* Card 1: Arrive by (Fully Editable) */}
+        <div className="p-2 rounded-xl border border-slate-200 bg-white space-y-0.5 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
           <div className="flex items-center gap-1 text-slate-400 text-[10px] font-semibold">
-            <Clock className="w-3 h-3" />
+            <Clock className="w-3 h-3 text-blue-500" />
             <span>Arrive by</span>
           </div>
           <div className="flex items-center justify-between">
@@ -225,48 +243,113 @@ export const PlanYourJourney: React.FC<PlanYourJourneyProps> = ({
               value={request.arrival_deadline || '10:10 AM'}
               onChange={(e) => onChangeRequest({ ...request, arrival_deadline: e.target.value })}
               className="text-xs font-black text-slate-900 w-full bg-transparent focus:outline-none"
+              placeholder="e.g. 10:10 AM"
             />
             <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
           </div>
         </div>
 
-        {/* Max budget */}
-        <div className="p-2 rounded-xl border border-slate-200 bg-white space-y-0.5">
+        {/* Card 2: Max budget (Fully Editable Number Input) */}
+        <div className="p-2 rounded-xl border border-slate-200 bg-white space-y-0.5 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
           <div className="flex items-center gap-1 text-slate-400 text-[10px] font-semibold">
-            <IndianRupee className="w-3 h-3" />
+            <IndianRupee className="w-3 h-3 text-emerald-500" />
             <span>Max budget</span>
           </div>
-          <div className="text-xs font-black text-slate-900">
-            ₹{request.max_budget.toLocaleString()}
+          <div className="flex items-center">
+            <span className="text-xs font-black text-slate-400 mr-0.5">₹</span>
+            <input
+              type="number"
+              min="100"
+              max="10000"
+              step="50"
+              value={request.max_budget}
+              onChange={(e) =>
+                onChangeRequest({ ...request, max_budget: Math.max(0, parseFloat(e.target.value) || 0) })
+              }
+              className="text-xs font-black text-slate-900 w-full bg-transparent focus:outline-none"
+              placeholder="1500"
+            />
           </div>
         </div>
 
-        {/* Max walking */}
-        <div className="p-2 rounded-xl border border-slate-200 bg-white space-y-0.5">
+        {/* Card 3: Max walking (Fully Editable Number in meters/km) */}
+        <div className="p-2 rounded-xl border border-slate-200 bg-white space-y-0.5 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
           <div className="flex items-center gap-1 text-slate-400 text-[10px] font-semibold">
-            <Footprints className="w-3 h-3" />
+            <Footprints className="w-3 h-3 text-orange-500" />
             <span>Max walking</span>
           </div>
-          <div className="text-xs font-black text-slate-900">
-            {request.max_walking_distance_meters >= 1000
-              ? `${(request.max_walking_distance_meters / 1000).toFixed(0)} km`
-              : `${request.max_walking_distance_meters} m`}
+          <div className="flex items-center justify-between">
+            <input
+              type="number"
+              min="100"
+              max="5000"
+              step="100"
+              value={request.max_walking_distance_meters}
+              onChange={(e) =>
+                onChangeRequest({
+                  ...request,
+                  max_walking_distance_meters: Math.max(100, parseInt(e.target.value) || 100),
+                })
+              }
+              className="text-xs font-black text-slate-900 w-full bg-transparent focus:outline-none"
+              placeholder="1000"
+            />
+            <span className="text-[10px] font-bold text-slate-400 ml-0.5 shrink-0">
+              {request.max_walking_distance_meters >= 1000
+                ? `${(request.max_walking_distance_meters / 1000).toFixed(1)}km`
+                : 'm'}
+            </span>
           </div>
         </div>
 
-        {/* Max transfers */}
-        <div className="p-2 rounded-xl border border-slate-200 bg-white space-y-0.5">
+        {/* Card 4: Max transfers (Fully Editable with Stepper Controls) */}
+        <div className="p-2 rounded-xl border border-slate-200 bg-white space-y-0.5 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
           <div className="flex items-center gap-1 text-slate-400 text-[10px] font-semibold">
-            <Shuffle className="w-3 h-3" />
+            <Shuffle className="w-3 h-3 text-purple-500" />
             <span>Max transfers</span>
           </div>
-          <div className="text-xs font-black text-slate-900">
-            {request.max_transfers}
+          <div className="flex items-center justify-between">
+            <input
+              type="number"
+              min="0"
+              max="5"
+              value={request.max_transfers}
+              onChange={(e) =>
+                onChangeRequest({
+                  ...request,
+                  max_transfers: Math.max(0, parseInt(e.target.value) || 0),
+                })
+              }
+              className="text-xs font-black text-slate-900 w-8 bg-transparent focus:outline-none"
+              placeholder="2"
+            />
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() =>
+                  onChangeRequest({ ...request, max_transfers: Math.max(0, request.max_transfers - 1) })
+                }
+                className="w-4 h-4 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center text-[10px] font-bold"
+                title="Decrease transfers"
+              >
+                -
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  onChangeRequest({ ...request, max_transfers: request.max_transfers + 1 })
+                }
+                className="w-4 h-4 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center text-[10px] font-bold"
+                title="Increase transfers"
+              >
+                +
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Travel Purpose (2x4 Grid with subtitles matching screenshot) */}
+      {/* 5. Travel Purpose (Default is GENERAL: Balanced time, cost & comfort) */}
       <div className="space-y-2">
         <div className="flex items-center gap-1 text-xs font-bold text-slate-800">
           <span>Travel purpose</span>
@@ -275,7 +358,8 @@ export const PlanYourJourney: React.FC<PlanYourJourneyProps> = ({
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {INTENT_CARDS.map((item) => {
-            const isSelected = request.intent === item.id || (item.id === 'custom' && request.intent === ('custom' as any));
+            const isSelected =
+              request.intent === item.id || (item.id === 'custom' && request.intent === ('custom' as any));
             const Icon = item.icon;
             return (
               <button
@@ -301,7 +385,7 @@ export const PlanYourJourney: React.FC<PlanYourJourneyProps> = ({
         </div>
       </div>
 
-      {/* Journey priorities (optional) with Reset Button */}
+      {/* 6. Journey priorities (optional) with Reset Button */}
       <div className="space-y-2.5 pt-1">
         <div className="flex items-center justify-between">
           <button
@@ -426,7 +510,7 @@ export const PlanYourJourney: React.FC<PlanYourJourneyProps> = ({
         )}
       </div>
 
-      {/* Big Orange Optimize Button */}
+      {/* 7. Big Orange Optimize Button */}
       <div className="space-y-2 pt-1">
         <button
           type="button"
@@ -450,7 +534,7 @@ export const PlanYourJourney: React.FC<PlanYourJourneyProps> = ({
 
         <p className="text-[11px] text-center text-slate-400 flex items-center justify-center gap-1">
           <Info className="w-3 h-3 text-slate-400" />
-          <span>We'll analyze multiple travel options using live search and maps data.</span>
+          <span>We'll compare journey options using maps, search and live intelligence.</span>
         </p>
       </div>
     </div>

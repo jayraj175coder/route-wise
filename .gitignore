@@ -35,9 +35,7 @@ dist-ssr/
 .env.development.local
 .env.test.local
 .env.production.local
-
-# IDE & OS
-.vscode/
-.idea/
-.DS_Store
-Thumbs.db
+# Database
+*.db
+*.sqlite
+*.sqlite3

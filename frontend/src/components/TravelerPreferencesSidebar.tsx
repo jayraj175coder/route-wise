@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Compass,
@@ -9,39 +9,94 @@ import {
   Footprints,
   Accessibility,
   Clock,
-  CheckSquare,
-  Square,
   Info,
+  Check,
 } from 'lucide-react';
+import {
+  fetchPreferences,
+  savePreferences,
+  fetchRecentSearches,
+  clearRecentSearches,
+} from '../services/api';
 
 interface TravelerPreferencesSidebarProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectRecentSearch?: (origin: string, destination: string) => void;
+  onSelectRecentSearch?: (item: any) => void;
+  onApplyPreferencesToPlanner?: (prefs: any) => void;
 }
 
 export const TravelerPreferencesSidebar: React.FC<TravelerPreferencesSidebarProps> = ({
   isOpen,
   onClose,
   onSelectRecentSearch,
+  onApplyPreferencesToPlanner,
 }) => {
-  const [travelStyle, setTravelStyle] = React.useState('balanced');
-  const [mobilityStyle, setMobilityStyle] = React.useState('standard');
-  const [walkingLimit, setWalkingLimit] = React.useState(1);
-  const [maxTransfers, setMaxTransfers] = React.useState(2);
-  const [quickPrefs, setQuickPrefs] = React.useState({
+  const [travelStyle, setTravelStyle] = useState('balanced');
+  const [mobilityStyle, setMobilityStyle] = useState('standard');
+  const [walkingLimit, setWalkingLimit] = useState(1);
+  const [maxTransfers, setMaxTransfers] = useState(2);
+  const [quickPrefs, setQuickPrefs] = useState({
     avoidTolls: true,
     preferPublic: true,
+    avoidStairs: false,
     showFlights: true,
     safetyNight: true,
   });
+  const [recentSearches, setRecentSearches] = useState<any[]>([]);
 
-  const recentSearches = [
-    { origin: 'Dadar, Mumbai', dest: 'Hinjawadi Phase 1, Pune', time: 'Today, 10:10 AM' },
-    { origin: 'Thane Station', dest: 'VJTI, Matunga', time: 'Oct 5, 9:00 AM' },
-    { origin: 'Andheri West', dest: 'Powai IIT', time: 'Oct 4, 4:30 PM' },
-    { origin: 'Dadar', dest: 'CST Mumbai', time: 'Oct 3, 8:00 AM' },
-  ];
+  // Load from SQLite on mount
+  useEffect(() => {
+    loadPreferences();
+    loadSearches();
+  }, []);
+
+  const loadPreferences = async () => {
+    const data = await fetchPreferences();
+    if (data) {
+      setTravelStyle(data.travel_style || 'balanced');
+      setMobilityStyle(data.accessibility_mode || 'standard');
+      setWalkingLimit(data.walking_limit || 1);
+      setMaxTransfers(data.max_transfers ?? 2);
+      setQuickPrefs({
+        avoidTolls: data.avoid_tolls ?? true,
+        preferPublic: data.prefer_public_transport ?? true,
+        avoidStairs: data.avoid_stairs ?? false,
+        showFlights: data.prefer_flights ?? true,
+        safetyNight: data.safety_priority ?? true,
+      });
+    }
+  };
+
+  const loadSearches = async () => {
+    const searches = await fetchRecentSearches();
+    setRecentSearches(searches || []);
+  };
+
+  const handleUpdatePreference = (updatedValues: any) => {
+    const newPrefs = {
+      travel_style: travelStyle,
+      walking_limit: walkingLimit,
+      max_transfers: maxTransfers,
+      prefer_public_transport: quickPrefs.preferPublic,
+      avoid_tolls: quickPrefs.avoidTolls,
+      avoid_stairs: quickPrefs.avoidStairs,
+      accessibility_mode: mobilityStyle,
+      prefer_flights: quickPrefs.showFlights,
+      safety_priority: quickPrefs.safetyNight,
+      voice_enabled: true,
+      ...updatedValues,
+    };
+    savePreferences(newPrefs);
+    if (onApplyPreferencesToPlanner) {
+      onApplyPreferencesToPlanner(newPrefs);
+    }
+  };
+
+  const handleClearSearches = async () => {
+    await clearRecentSearches();
+    setRecentSearches([]);
+  };
 
   if (!isOpen) return null;
 
@@ -49,9 +104,14 @@ export const TravelerPreferencesSidebar: React.FC<TravelerPreferencesSidebarProp
     <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-5 space-y-6 text-slate-800 h-fit">
       {/* Header */}
       <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-        <h3 className="font-heading text-base font-bold text-slate-900">
-          Traveler Preferences
-        </h3>
+        <div>
+          <h3 className="font-heading text-base font-bold text-slate-900">
+            Traveler Preferences
+          </h3>
+          <p className="text-[11px] text-slate-500">
+            Personalize how RouteWise chooses journeys.
+          </p>
+        </div>
         <button
           onClick={onClose}
           className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors"
@@ -79,7 +139,10 @@ export const TravelerPreferencesSidebar: React.FC<TravelerPreferencesSidebarProp
             return (
               <div
                 key={item.id}
-                onClick={() => setTravelStyle(item.id)}
+                onClick={() => {
+                  setTravelStyle(item.id);
+                  handleUpdatePreference({ travel_style: item.id });
+                }}
                 className={`flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition-all ${
                   isSelected
                     ? 'border-blue-500 bg-blue-50/50 text-blue-900 shadow-2xs'
@@ -93,9 +156,11 @@ export const TravelerPreferencesSidebar: React.FC<TravelerPreferencesSidebarProp
                     <div className="text-[10px] text-slate-500 leading-tight">{item.desc}</div>
                   </div>
                 </div>
-                <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
-                  isSelected ? 'border-blue-600 bg-blue-600' : 'border-slate-300'
-                }`}>
+                <div
+                  className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                    isSelected ? 'border-blue-600 bg-blue-600' : 'border-slate-300'
+                  }`}
+                >
                   {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                 </div>
               </div>
@@ -120,7 +185,10 @@ export const TravelerPreferencesSidebar: React.FC<TravelerPreferencesSidebarProp
             return (
               <div
                 key={item.id}
-                onClick={() => setMobilityStyle(item.id)}
+                onClick={() => {
+                  setMobilityStyle(item.id);
+                  handleUpdatePreference({ accessibility_mode: item.id });
+                }}
                 className={`flex items-center justify-between p-2 rounded-xl border cursor-pointer transition-all ${
                   isSelected
                     ? 'border-blue-500 bg-blue-50/50 text-blue-900'
@@ -134,9 +202,11 @@ export const TravelerPreferencesSidebar: React.FC<TravelerPreferencesSidebarProp
                     <div className="text-[10px] text-slate-500 leading-tight">{item.desc}</div>
                   </div>
                 </div>
-                <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
-                  isSelected ? 'border-blue-600 bg-blue-600' : 'border-slate-300'
-                }`}>
+                <div
+                  className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                    isSelected ? 'border-blue-600 bg-blue-600' : 'border-slate-300'
+                  }`}
+                >
                   {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                 </div>
               </div>
@@ -156,7 +226,11 @@ export const TravelerPreferencesSidebar: React.FC<TravelerPreferencesSidebarProp
             max="3"
             step="0.5"
             value={walkingLimit}
-            onChange={(e) => setWalkingLimit(Number(e.target.value))}
+            onChange={(e) => {
+              const val = Number(e.target.value);
+              setWalkingLimit(val);
+              handleUpdatePreference({ walking_limit: val });
+            }}
             className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
           />
         </div>
@@ -169,7 +243,10 @@ export const TravelerPreferencesSidebar: React.FC<TravelerPreferencesSidebarProp
               <button
                 key={val}
                 type="button"
-                onClick={() => setMaxTransfers(val)}
+                onClick={() => {
+                  setMaxTransfers(val);
+                  handleUpdatePreference({ max_transfers: val });
+                }}
                 className={`py-1 rounded-lg text-xs font-bold border transition-all ${
                   maxTransfers === val
                     ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
@@ -183,33 +260,42 @@ export const TravelerPreferencesSidebar: React.FC<TravelerPreferencesSidebarProp
         </div>
       </div>
 
-      {/* Section 3: Recent searches */}
+      {/* Section 3: Recent searches (Backed by SQLite) */}
       <div className="space-y-2.5 pt-1 border-t border-slate-100">
         <div className="flex items-center justify-between">
           <label className="text-xs font-bold text-slate-700 block uppercase tracking-wider">
             Recent searches
           </label>
-          <button className="text-[11px] text-blue-600 hover:text-blue-800 font-semibold">
+          <button
+            onClick={handleClearSearches}
+            className="text-[11px] text-blue-600 hover:text-blue-800 font-semibold"
+          >
             Clear all
           </button>
         </div>
 
         <div className="space-y-2">
-          {recentSearches.map((item, idx) => (
-            <div
-              key={idx}
-              onClick={() => onSelectRecentSearch && onSelectRecentSearch(item.origin, item.dest)}
-              className="flex items-start gap-2 p-1.5 rounded-lg hover:bg-slate-50 cursor-pointer group transition-colors"
-            >
-              <Clock className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 mt-0.5 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <div className="text-xs font-bold text-slate-800 group-hover:text-blue-600 truncate">
-                  {item.origin} → {item.dest}
+          {recentSearches.length === 0 ? (
+            <p className="text-[11px] text-slate-400 italic">No recent searches yet.</p>
+          ) : (
+            recentSearches.slice(0, 5).map((item) => (
+              <div
+                key={item.id}
+                onClick={() => onSelectRecentSearch && onSelectRecentSearch(item)}
+                className="flex items-start gap-2 p-1.5 rounded-lg hover:bg-slate-50 cursor-pointer group transition-colors"
+              >
+                <Clock className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 mt-0.5 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-bold text-slate-800 group-hover:text-blue-600 truncate">
+                    {item.origin} → {item.destination}
+                  </div>
+                  <div className="text-[10px] text-slate-400">
+                    {item.created_at || item.deadline}
+                  </div>
                 </div>
-                <div className="text-[10px] text-slate-400">{item.time}</div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
 
@@ -220,10 +306,11 @@ export const TravelerPreferencesSidebar: React.FC<TravelerPreferencesSidebarProp
         </label>
         <div className="space-y-1.5 text-xs">
           {[
-            { key: 'avoidTolls', label: 'Avoid toll routes' },
-            { key: 'preferPublic', label: 'Prefer public transport' },
-            { key: 'showFlights', label: 'Show flight options (if available)' },
-            { key: 'safetyNight', label: 'Prioritize safety at night' },
+            { key: 'preferPublic', label: 'Prefer public transport', dbKey: 'prefer_public_transport' },
+            { key: 'avoidTolls', label: 'Avoid toll routes', dbKey: 'avoid_tolls' },
+            { key: 'avoidStairs', label: 'Avoid stairs', dbKey: 'avoid_stairs' },
+            { key: 'safetyNight', label: 'Prioritize safety at night', dbKey: 'safety_priority' },
+            { key: 'showFlights', label: 'Prefer flights for long-distance', dbKey: 'prefer_flights' },
           ].map((pref) => {
             const isChecked = quickPrefs[pref.key as keyof typeof quickPrefs];
             return (
@@ -234,12 +321,15 @@ export const TravelerPreferencesSidebar: React.FC<TravelerPreferencesSidebarProp
                 <input
                   type="checkbox"
                   checked={isChecked}
-                  onChange={() =>
-                    setQuickPrefs((prev) => ({
-                      ...prev,
-                      [pref.key]: !prev[pref.key as keyof typeof quickPrefs],
-                    }))
-                  }
+                  onChange={() => {
+                    const nextVal = !isChecked;
+                    const nextQuick = {
+                      ...quickPrefs,
+                      [pref.key]: nextVal,
+                    };
+                    setQuickPrefs(nextQuick);
+                    handleUpdatePreference({ [pref.dbKey]: nextVal });
+                  }}
                   className="w-4 h-4 rounded text-blue-600 accent-blue-600 focus:ring-0 cursor-pointer"
                 />
                 <span className="text-[11px] font-medium">{pref.label}</span>
@@ -252,7 +342,7 @@ export const TravelerPreferencesSidebar: React.FC<TravelerPreferencesSidebarProp
       {/* Bottom privacy info */}
       <div className="pt-2 border-t border-slate-100 flex items-start gap-1.5 text-[10px] text-slate-400">
         <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-slate-400" />
-        <span>Preferences are saved only in this browser. No account required.</span>
+        <span>Preferences stored in local SQLite database. No account required.</span>
       </div>
     </div>
   );
