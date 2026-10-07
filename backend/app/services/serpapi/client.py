@@ -3,6 +3,10 @@ import logging
 import requests
 from typing import Dict, Any, Optional
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 logger = logging.getLogger(__name__)
 
 class SerpApiClient:
