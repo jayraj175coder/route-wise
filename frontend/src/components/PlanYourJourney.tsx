@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   JourneyRequest,
   JourneyIntent,
@@ -56,6 +56,141 @@ export const PlanYourJourney: React.FC<PlanYourJourneyProps> = ({
   const [isEditingTime, setIsEditingTime] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [detectedLocation, setDetectedLocation] = useState<DetectedLocation | null>(null);
+
+  // Editable text states to allow free typing (including 4, 5, etc.) without getting stuck
+  const [walkingText, setWalkingText] = useState(String(request.max_walking_distance_meters));
+  const [budgetText, setBudgetText] = useState(String(Math.round(request.max_budget)));
+  const [transfersText, setTransfersText] = useState(String(request.max_transfers));
+
+  useEffect(() => {
+    const currentNum = parseInt(walkingText, 10);
+    if (!isNaN(currentNum) && currentNum === request.max_walking_distance_meters) {
+      return;
+    }
+    setWalkingText(String(request.max_walking_distance_meters));
+  }, [request.max_walking_distance_meters]);
+
+  useEffect(() => {
+    const currentNum = parseFloat(budgetText);
+    if (!isNaN(currentNum) && currentNum === request.max_budget) {
+      return;
+    }
+    setBudgetText(String(Math.round(request.max_budget)));
+  }, [request.max_budget]);
+
+  useEffect(() => {
+    const currentNum = parseInt(transfersText, 10);
+    if (!isNaN(currentNum) && currentNum === request.max_transfers) {
+      return;
+    }
+    setTransfersText(String(request.max_transfers));
+  }, [request.max_transfers]);
+
+  const handleWalkingChange = (val: string) => {
+    setWalkingText(val);
+    if (val.trim() === '') return;
+    const parsed = parseInt(val, 10);
+    if (!isNaN(parsed) && parsed >= 0) {
+      onChangeRequest({ ...request, max_walking_distance_meters: parsed });
+    }
+  };
+
+  const handleWalkingBlur = () => {
+    const parsed = parseInt(walkingText, 10);
+    if (isNaN(parsed) || parsed < 0) {
+      const fallback = request.max_walking_distance_meters || 500;
+      setWalkingText(String(fallback));
+      onChangeRequest({ ...request, max_walking_distance_meters: fallback });
+    } else {
+      setWalkingText(String(parsed));
+    }
+  };
+
+  const handleWalkingDec = () => {
+    const curr = parseInt(walkingText, 10) || 0;
+    const step = curr <= 10 ? 1 : curr <= 100 ? 10 : 100;
+    const nextVal = Math.max(0, curr - step);
+    setWalkingText(String(nextVal));
+    onChangeRequest({ ...request, max_walking_distance_meters: nextVal });
+  };
+
+  const handleWalkingInc = () => {
+    const curr = parseInt(walkingText, 10) || 0;
+    const step = curr < 10 ? 1 : curr < 100 ? 10 : 100;
+    const nextVal = curr + step;
+    setWalkingText(String(nextVal));
+    onChangeRequest({ ...request, max_walking_distance_meters: nextVal });
+  };
+
+  const handleBudgetChange = (val: string) => {
+    setBudgetText(val);
+    if (val.trim() === '') return;
+    const parsed = parseFloat(val);
+    if (!isNaN(parsed) && parsed >= 0) {
+      onChangeRequest({ ...request, max_budget: parsed });
+    }
+  };
+
+  const handleBudgetBlur = () => {
+    const parsed = parseFloat(budgetText);
+    if (isNaN(parsed) || parsed < 0) {
+      const fallback = Math.round(request.max_budget) || 10;
+      setBudgetText(String(fallback));
+      onChangeRequest({ ...request, max_budget: fallback });
+    } else {
+      setBudgetText(String(Math.round(parsed)));
+    }
+  };
+
+  const handleBudgetDec = () => {
+    const curr = parseFloat(budgetText) || 0;
+    const step = curr <= 10 ? 1 : 10;
+    const nextVal = Math.max(0, curr - step);
+    setBudgetText(String(nextVal));
+    onChangeRequest({ ...request, max_budget: nextVal });
+  };
+
+  const handleBudgetInc = () => {
+    const curr = parseFloat(budgetText) || 0;
+    const step = curr < 10 ? 1 : 10;
+    const nextVal = curr + step;
+    setBudgetText(String(nextVal));
+    onChangeRequest({ ...request, max_budget: nextVal });
+  };
+
+  const handleTransfersChange = (val: string) => {
+    setTransfersText(val);
+    if (val.trim() === '') return;
+    const parsed = parseInt(val, 10);
+    if (!isNaN(parsed) && parsed >= 0) {
+      onChangeRequest({ ...request, max_transfers: parsed });
+    }
+  };
+
+  const handleTransfersBlur = () => {
+    const parsed = parseInt(transfersText, 10);
+    if (isNaN(parsed) || parsed < 0) {
+      const fallback = request.max_transfers ?? 2;
+      setTransfersText(String(fallback));
+      onChangeRequest({ ...request, max_transfers: fallback });
+    } else {
+      setTransfersText(String(parsed));
+    }
+  };
+
+  const handleTransfersDec = () => {
+    const curr = parseInt(transfersText, 10) || 0;
+    const nextVal = Math.max(0, curr - 1);
+    setTransfersText(String(nextVal));
+    onChangeRequest({ ...request, max_transfers: nextVal });
+  };
+
+  const handleTransfersInc = () => {
+    const curr = parseInt(transfersText, 10) || 0;
+    const nextVal = curr + 1;
+    setTransfersText(String(nextVal));
+    onChangeRequest({ ...request, max_transfers: nextVal });
+  };
 
   const handleDetectLocation = async () => {
     setIsLocating(true);
@@ -308,7 +443,7 @@ export const PlanYourJourney: React.FC<PlanYourJourneyProps> = ({
 
         {/* Constraints Grid (Walking Limit, Budget, Transfers) */}
         <div className="grid grid-cols-2 gap-2.5">
-          {/* Walking Limit with Stepper Buttons */}
+          {/* Walking Limit with Direct Edit & Stepper */}
           <div className="p-3 rounded-2xl border border-slate-200/90 dark:border-slate-700 bg-white dark:bg-slate-800/70 flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
               <Footprints className="w-4 h-4" />
@@ -316,31 +451,34 @@ export const PlanYourJourney: React.FC<PlanYourJourneyProps> = ({
             <div className="flex-1 min-w-0">
               <span className="text-[9px] font-bold text-slate-400 block leading-tight">Walking Limit</span>
               <div className="flex items-center justify-between mt-0.5">
-                <span className="text-xs font-black text-slate-900 dark:text-white">
-                  {request.max_walking_distance_meters} m
-                </span>
                 <div className="flex items-center gap-1">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={walkingText}
+                    onChange={(e) => handleWalkingChange(e.target.value.replace(/[^0-9]/g, ''))}
+                    onFocus={(e) => e.target.select()}
+                    onBlur={handleWalkingBlur}
+                    className="text-xs font-black text-slate-900 dark:text-white bg-slate-50/80 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700/80 focus:bg-white dark:focus:bg-slate-700 border border-slate-200/80 dark:border-slate-600 rounded px-1.5 py-0.5 w-14 text-center focus:outline-none focus:ring-1.5 focus:ring-blue-500 transition-colors"
+                    title="Type any walking limit (e.g. 4, 5, 500, 1000)"
+                  />
+                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">m</span>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
                   <button
                     type="button"
-                    onClick={() =>
-                      onChangeRequest({
-                        ...request,
-                        max_walking_distance_meters: Math.max(100, request.max_walking_distance_meters - 100),
-                      })
-                    }
+                    onClick={handleWalkingDec}
                     className="w-5 h-5 rounded-md bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center transition-colors"
+                    title="Decrease walking limit"
                   >
                     -
                   </button>
                   <button
                     type="button"
-                    onClick={() =>
-                      onChangeRequest({
-                        ...request,
-                        max_walking_distance_meters: Math.min(5000, request.max_walking_distance_meters + 100),
-                      })
-                    }
+                    onClick={handleWalkingInc}
                     className="w-5 h-5 rounded-md bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center transition-colors"
+                    title="Increase walking limit"
                   >
                     +
                   </button>
@@ -349,7 +487,7 @@ export const PlanYourJourney: React.FC<PlanYourJourneyProps> = ({
             </div>
           </div>
 
-          {/* Budget with Stepper Buttons */}
+          {/* Budget with Direct Edit & Stepper */}
           <div className="p-3 rounded-2xl border border-slate-200/90 dark:border-slate-700 bg-white dark:bg-slate-800/70 flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
               <IndianRupee className="w-4 h-4" />
@@ -357,31 +495,34 @@ export const PlanYourJourney: React.FC<PlanYourJourneyProps> = ({
             <div className="flex-1 min-w-0">
               <span className="text-[9px] font-bold text-slate-400 block leading-tight">Budget</span>
               <div className="flex items-center justify-between mt-0.5">
-                <span className="text-xs font-black text-slate-900 dark:text-white">
-                  ₹{Math.round(request.max_budget)}
-                </span>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-0.5">
+                  <span className="text-xs font-black text-slate-900 dark:text-white">₹</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={budgetText}
+                    onChange={(e) => handleBudgetChange(e.target.value.replace(/[^0-9]/g, ''))}
+                    onFocus={(e) => e.target.select()}
+                    onBlur={handleBudgetBlur}
+                    className="text-xs font-black text-slate-900 dark:text-white bg-slate-50/80 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700/80 focus:bg-white dark:focus:bg-slate-700 border border-slate-200/80 dark:border-slate-600 rounded px-1.5 py-0.5 w-14 text-center focus:outline-none focus:ring-1.5 focus:ring-emerald-500 transition-colors"
+                    title="Type any budget (e.g. 4, 5, 30, 100)"
+                  />
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
                   <button
                     type="button"
-                    onClick={() =>
-                      onChangeRequest({
-                        ...request,
-                        max_budget: Math.max(10, request.max_budget - 10),
-                      })
-                    }
+                    onClick={handleBudgetDec}
                     className="w-5 h-5 rounded-md bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center transition-colors"
+                    title="Decrease budget"
                   >
                     -
                   </button>
                   <button
                     type="button"
-                    onClick={() =>
-                      onChangeRequest({
-                        ...request,
-                        max_budget: Math.min(5000, request.max_budget + 10),
-                      })
-                    }
+                    onClick={handleBudgetInc}
                     className="w-5 h-5 rounded-md bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center transition-colors"
+                    title="Increase budget"
                   >
                     +
                   </button>
@@ -390,16 +531,47 @@ export const PlanYourJourney: React.FC<PlanYourJourneyProps> = ({
             </div>
           </div>
 
-          {/* Transfers Card */}
-          <div className="p-3 rounded-2xl border border-slate-200/90 dark:border-slate-700 bg-white dark:bg-slate-800/70 flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
-              <Shuffle className="w-4 h-4" />
+          {/* Transfers with Direct Edit & Stepper (Full Width matching screenshot) */}
+          <div className="col-span-2 p-3 rounded-2xl border border-slate-200/90 dark:border-slate-700 bg-white dark:bg-slate-800/70 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                <Shuffle className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-[9px] font-bold text-slate-400 block leading-tight">Transfers</span>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={transfersText}
+                    onChange={(e) => handleTransfersChange(e.target.value.replace(/[^0-9]/g, ''))}
+                    onFocus={(e) => e.target.select()}
+                    onBlur={handleTransfersBlur}
+                    className="text-xs font-black text-slate-900 dark:text-white bg-slate-50/80 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700/80 focus:bg-white dark:focus:bg-slate-700 border border-slate-200/80 dark:border-slate-600 rounded px-1.5 py-0.5 w-10 text-center focus:outline-none focus:ring-1.5 focus:ring-purple-500 transition-colors"
+                    title="Type max transfers (e.g. 0, 1, 2, 3)"
+                  />
+                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">max</span>
+                </div>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <span className="text-[9px] font-bold text-slate-400 block leading-tight">Transfers</span>
-              <span className="text-xs font-black text-slate-900 dark:text-white block mt-0.5">
-                {request.max_transfers} max
-              </span>
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={handleTransfersDec}
+                className="w-5 h-5 rounded-md bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center transition-colors"
+                title="Decrease transfers by 1"
+              >
+                -
+              </button>
+              <button
+                type="button"
+                onClick={handleTransfersInc}
+                className="w-5 h-5 rounded-md bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center transition-colors"
+                title="Increase transfers by 1"
+              >
+                +
+              </button>
             </div>
           </div>
         </div>

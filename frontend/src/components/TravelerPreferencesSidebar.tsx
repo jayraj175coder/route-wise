@@ -223,7 +223,7 @@ export const TravelerPreferencesSidebar: React.FC<TravelerPreferencesSidebarProp
           <input
             type="range"
             min="0.5"
-            max="3"
+            max="5"
             step="0.5"
             value={walkingLimit}
             onChange={(e) => {
