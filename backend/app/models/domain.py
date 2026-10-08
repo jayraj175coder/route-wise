@@ -19,6 +19,9 @@ class TransportMode(str, Enum):
     CYCLING = "cycling"
     FLIGHT = "flight"
     AUTO = "auto"
+    TRAIN = "train"
+    METRO = "metro"
+    BUS = "bus"
 
 class PriorityWeights(BaseModel):
     time: float = Field(0.35, ge=0.0, le=1.0)

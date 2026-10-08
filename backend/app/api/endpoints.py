@@ -56,20 +56,58 @@ def check_serpapi_status(serp_client: SerpApiClient = Depends(get_serpapi_client
 
 @router.post("/journey/optimize", response_model=OptimizationResult)
 def optimize_route(request: JourneyRequest, serp_client: SerpApiClient = Depends(get_serpapi_client), db: Session = Depends(get_db)):
-    # 1. Fetch live SerpApi directions & disruption signals if configured
     candidates: List[CandidateRoute] = []
-    
-    if serp_client.is_available():
-        raw_dirs = serp_client.search_google_directions(request.origin, request.destination)
-        if raw_dirs:
-            candidates = normalize_serpapi_directions(raw_dirs, request.origin, request.destination)
-            live_signals = fetch_live_disruption_signals(request.origin, request.destination, serp_client)
-            for c in candidates:
-                c.disruption_signals.extend(live_signals)
 
-    # 2. Dynamic multimodal generation tailored to user's exact origin and destination
+    # 1. Fetch live SerpApi directions & disruption signals if configured
+    if serp_client.is_available():
+        # Query transit directions (trains, local suburban rails, buses, metros)
+        raw_transit = serp_client.search_google_directions(request.origin, request.destination, travel_mode="3")
+        if raw_transit:
+            serp_transit_routes = normalize_serpapi_directions(raw_transit, request.origin, request.destination)
+            candidates.extend(serp_transit_routes)
+
+        # Query driving directions (cabs, road driving)
+        raw_driving = serp_client.search_google_directions(request.origin, request.destination, travel_mode="0")
+        if raw_driving:
+            serp_driving_routes = normalize_serpapi_directions(raw_driving, request.origin, request.destination)
+            candidates.extend(serp_driving_routes[:2])
+
+        live_signals = fetch_live_disruption_signals(request.origin, request.destination, serp_client)
+        if live_signals:
+            for c in candidates:
+                if any(m in c.mode_summary.lower() for m in ["drive", "cab", "bus", "expressway", "highway"]):
+                    c.disruption_signals.extend(live_signals)
+
+    # 2. Dynamic multimodal generation tailored to user's exact origin, destination & intent
+    synthetic = generate_multimodal_candidates(request.origin, request.destination, has_disruption=False, intent=request.intent)
+
     if not candidates:
-        candidates = generate_multimodal_candidates(request.origin, request.destination, has_disruption=False)
+        candidates = synthetic
+    else:
+        # If live SerpApi routes exist, preserve real Google Maps transit ground truth.
+        # Complement with essential multimodal modes (Suburban Local Train, Bike Taxi, Flights)
+        existing_summaries = [c.mode_summary.lower() for c in candidates]
+        has_bike = any("bike" in e for e in existing_summaries)
+        has_flight = any("flight" in e or "aeroplane" in e for e in existing_summaries)
+
+        for s_route in synthetic:
+            s_low = s_route.mode_summary.lower()
+            if s_route.id == "route-local-suburban-train":
+                # Ensure the authentic Mumbai Suburban rail route is always provided for commuters
+                candidates.append(s_route)
+            elif "bike" in s_low and not has_bike:
+                candidates.append(s_route)
+            elif ("flight" in s_low or "aeroplane" in s_low) and not has_flight:
+                candidates.append(s_route)
+
+    # Distance sanity filter: on long-distance journeys (> 100km), discard partial local-only routes that don't reach destination
+    from app.services.route_generator import estimate_journey_distance_km
+    journey_dist_km = estimate_journey_distance_km(request.origin, request.destination)
+    if journey_dist_km > 100.0:
+        candidates = [
+            c for c in candidates
+            if c.total_distance_meters >= (journey_dist_km * 350.0) or "flight" in c.mode_summary.lower() or "aeroplane" in c.mode_summary.lower()
+        ]
 
     result = optimize_journey(request, candidates)
 
@@ -106,7 +144,7 @@ def reoptimize_route(req: ReoptimizeRequest):
     """
     # Load candidate routes with active disruption triggered
     candidates_with_disruption = generate_multimodal_candidates(
-        req.journey_request.origin, req.journey_request.destination, has_disruption=True
+        req.journey_request.origin, req.journey_request.destination, has_disruption=True, intent=req.journey_request.intent
     )
     new_result = optimize_journey(req.journey_request, candidates_with_disruption)
 
@@ -150,7 +188,7 @@ def what_if_simulation(req: WhatIfRequest):
         modified_request.weights = req.adjusted_weights
 
     candidates = generate_multimodal_candidates(
-        req.journey_request.origin, req.journey_request.destination, has_disruption=False
+        req.journey_request.origin, req.journey_request.destination, has_disruption=False, intent=req.journey_request.intent
     )
     original_result = optimize_journey(req.journey_request, candidates)
     new_result = optimize_journey(modified_request, candidates)

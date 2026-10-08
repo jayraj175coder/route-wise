@@ -23,17 +23,37 @@ def parse_voice_transcript(transcript: str) -> Dict[str, Any]:
         "raw_transcript": transcript,
     }
 
-    # Extract origin & destination patterns: "from X to Y"
-    from_to_match = re.search(r"from\s+([a-zA-Z0-9\s,]+?)\s+to\s+([a-zA-Z0-9\s,]+?)(?:\s+(?:tomorrow|at|my|by|in|with|\.|\,)|$)", text)
+    # Extract origin & destination patterns
+    # Pattern 1: "from X to Y"
+    from_to_match = re.search(r"from\s+([a-zA-Z0-9\s,]+?)\s+to\s+([a-zA-Z0-9\s,]+?)(?:\s+(?:tomorrow|at|my|by|before|in|with|for|\.|\,)|$)", text)
+    # Pattern 2: "to/reach Y from X"
+    to_from_match = re.search(r"(?:reach|go to|travel to|to)\s+([a-zA-Z0-9\s,]+?)\s+from\s+([a-zA-Z0-9\s,]+?)(?:\s+(?:tomorrow|at|my|by|before|in|with|for|\.|\,)|$)", text)
+    # Pattern 3: "X to Y"
+    x_to_y_match = re.search(r"(?:i need|want|route|going|travel|commute)?\s*([a-zA-Z0-9\s,]+?)\s+to\s+([a-zA-Z0-9\s,]+?)(?:\s+(?:tomorrow|at|my|by|before|in|with|for|\.|\,)|$)", text)
+
+    orig, dest = None, None
     if from_to_match:
         orig = from_to_match.group(1).strip().title()
         dest = from_to_match.group(2).strip().title()
+    elif to_from_match:
+        dest = to_from_match.group(1).strip().title()
+        orig = to_from_match.group(2).strip().title()
+    elif x_to_y_match and len(x_to_y_match.group(1).strip()) > 2 and len(x_to_y_match.group(2).strip()) > 2:
+        orig = x_to_y_match.group(1).strip().title()
+        dest = x_to_y_match.group(2).strip().title()
+
+    if orig and dest:
+        # Clean filler words
+        for filler in ["I Need To Go", "I Want To Go", "Go", "Travel", "Please"]:
+            if orig.startswith(filler):
+                orig = orig[len(filler):].strip()
         if "Dadar" in orig and "Mumbai" not in orig:
             orig = f"{orig}, Mumbai"
         if "Hinjawadi" in dest and "Pune" not in dest:
             dest = f"{dest}, Pune"
-        parsed["origin"] = orig
-        parsed["destination"] = dest
+        if orig and dest:
+            parsed["origin"] = orig
+            parsed["destination"] = dest
 
     # Extract arrival deadline: e.g. "at 10:30", "10:10 am", "reach by 11", "deadline 10:30"
     time_match = re.search(r"(?:at|by|before)\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)", text)
