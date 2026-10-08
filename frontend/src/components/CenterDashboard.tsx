@@ -21,6 +21,7 @@ import {
   Navigation,
   ChevronDown,
   RefreshCw,
+  Sparkles,
 } from 'lucide-react';
 
 interface CenterDashboardProps {
@@ -30,6 +31,7 @@ interface CenterDashboardProps {
   onSelectRoute?: (route: CandidateRoute) => void;
   onOpenSignalsModal?: () => void;
   onOpenScoreModal?: () => void;
+  isLoading?: boolean;
 }
 
 const MODE_IMAGES: Record<string, string> = {
@@ -207,7 +209,172 @@ export const CenterDashboard: React.FC<CenterDashboardProps> = ({
   optimizationResult,
   selectedRoute,
   onOpenScoreModal,
+  isLoading,
 }) => {
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {/* HERO BANNER CARD IN OPTIMIZING / FINDING MODE */}
+        <div className="bg-white dark:bg-[#0D1527] rounded-3xl overflow-hidden border border-cyan-500/30 dark:border-cyan-500/20 shadow-md transition-colors duration-200 relative">
+          {/* Animated top shimmer beam */}
+          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-600 via-cyan-400 to-emerald-400 animate-pulse z-20" />
+
+          {/* Top Graphical Hero Section */}
+          <div className="relative bg-gradient-to-r from-[#0C1E3C] via-[#102A54] to-[#1A3F75] px-6 py-7 overflow-hidden min-h-[190px] flex flex-col justify-between">
+            {/* Ambient train photo */}
+            <div
+              className="absolute inset-0 bg-cover bg-center mix-blend-luminosity opacity-20 pointer-events-none"
+              style={{
+                backgroundImage: `url('https://images.unsplash.com/photo-1474487548417-781cb71495f3?auto=format&fit=crop&w=1200&q=80')`,
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0C1E3C]/95 via-[#0C1E3C]/60 to-transparent pointer-events-none" />
+
+            {/* Top Row: AI Status Pill + Calculating Ring */}
+            <div className="relative z-10 flex items-start justify-between">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-950/80 backdrop-blur-md border border-cyan-400/40 text-cyan-200 text-xs font-black shadow-xs">
+                <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-spin" />
+                <span>RouteWise AI Engine Optimizing</span>
+                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+              </div>
+
+              {/* Calculating Score Ring */}
+              <div className="flex items-center gap-3 px-3.5 py-2 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-md">
+                <div className="relative w-10 h-10 flex items-center justify-center">
+                  <RefreshCw className="w-6 h-6 text-cyan-400 animate-spin" />
+                </div>
+                <div>
+                  <div className="text-[10px] text-slate-300 font-semibold leading-tight">
+                    Evaluating Pareto
+                  </div>
+                  <div className="text-[10px] text-cyan-300 font-bold">
+                    Scoring Routes...
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Main Title & Subtitle */}
+            <div className="relative z-10 mt-3">
+              <h1 className="font-heading text-2xl sm:text-3xl font-black text-white tracking-tight leading-tight drop-shadow-sm flex items-center gap-2">
+                <span>Calculating Best Route</span>
+                <span className="text-cyan-400 font-mono text-xl animate-pulse">...</span>
+              </h1>
+              <p className="text-xs sm:text-sm font-semibold text-slate-200 mt-1 flex items-center gap-2">
+                <span className="text-cyan-300">{request.origin || 'Origin'}</span>
+                <span className="text-slate-400">➔</span>
+                <span className="text-cyan-300">{request.destination || 'Destination'}</span>
+                <span className="text-slate-400">•</span>
+                <span>Target Arrival: {request.arrival_deadline || '10:10 AM'}</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Shimmering Metrics Grid */}
+          <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-[#0D1527] grid grid-cols-5 gap-3 text-center divide-x divide-slate-100 dark:divide-slate-800">
+            <div className="flex flex-col items-center">
+              <IndianRupee className="w-5 h-5 text-emerald-500 mb-1" />
+              <span className="text-sm font-black text-slate-900 dark:text-white animate-pulse">
+                ≤ ₹{request.max_budget}
+              </span>
+              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">Budget Constraint</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <Clock className="w-5 h-5 text-blue-500 mb-1 animate-spin" />
+              <span className="text-sm font-black text-slate-900 dark:text-white animate-pulse">
+                Minimizing
+              </span>
+              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">Transit Time</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <Shuffle className="w-5 h-5 text-purple-500 mb-1" />
+              <span className="text-sm font-black text-slate-900 dark:text-white animate-pulse">
+                ≤ {request.max_transfers} max
+              </span>
+              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">Transfer Filter</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <Footprints className="w-5 h-5 text-amber-500 mb-1" />
+              <span className="text-sm font-black text-slate-900 dark:text-white animate-pulse">
+                ≤ {request.max_walking_distance_meters}m
+              </span>
+              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">Walk Limit</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <Clock className="w-5 h-5 text-teal-500 mb-1" />
+              <span className="text-sm font-black text-slate-900 dark:text-white animate-pulse">
+                Live Traffic
+              </span>
+              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">Buffer Safety</span>
+            </div>
+          </div>
+
+          {/* Animated Multimodal Transit Chain */}
+          <div className="px-6 py-3.5 bg-slate-50/70 dark:bg-slate-900/50 flex flex-wrap items-center justify-between gap-2 text-xs border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 font-bold animate-pulse">
+                <Footprints className="w-3.5 h-3.5" />
+                <span>Walk</span>
+              </div>
+              <span className="text-slate-400">➔</span>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 font-bold animate-pulse">
+                <Car className="w-3.5 h-3.5" />
+                <span>Auto / Cab</span>
+              </div>
+              <span className="text-slate-400">➔</span>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 font-bold animate-pulse">
+                <Train className="w-3.5 h-3.5" />
+                <span>Local Train</span>
+              </div>
+            </div>
+            <div className="text-[11px] font-bold text-cyan-600 dark:text-cyan-400 animate-pulse">
+              ⚡ Evaluating multi-modal transfer points & Pareto tradeoffs...
+            </div>
+          </div>
+        </div>
+
+        {/* STEP-BY-STEP ITINERARY IN FINDING SKELETON MODE */}
+        <div className="bg-white dark:bg-[#0D1527] rounded-3xl p-6 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-2">
+              <RouteIcon className="w-5 h-5 text-blue-600 dark:text-blue-400 animate-spin" />
+              <h2 className="font-heading text-base font-black text-slate-900 dark:text-white">
+                Synthesizing Step-by-Step Itinerary
+              </h2>
+            </div>
+            <span className="text-xs font-bold text-cyan-600 dark:text-cyan-400 animate-pulse">
+              Computing multimodal candidate stages...
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {[
+              { num: 1, title: 'First-Mile Connection', sub: `Connecting from ${request.origin || 'Origin'} to local auto / train station` },
+              { num: 2, title: 'Rapid Commute Trunk Line', sub: 'Suburban train / highway corridor selection with low disruption risk' },
+              { num: 3, title: 'Last-Mile Delivery', sub: `Final arrival at ${request.destination || 'Destination'} with on-time safety buffer` },
+            ].map((stage) => (
+              <div
+                key={stage.num}
+                className="p-4 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between animate-pulse"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">
+                    {stage.num}
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white">{stage.title}</h4>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">{stage.sub}</p>
+                  </div>
+                </div>
+                <div className="h-4 w-20 bg-slate-200 dark:bg-slate-700 rounded-full" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const stages = selectedRoute.segments || [];
   const score = Math.round(selectedRoute.confidence_score || selectedRoute.overall_score || 89);
   const costUnderBudget = Math.max(0, Math.round(request.max_budget - selectedRoute.estimated_cost));

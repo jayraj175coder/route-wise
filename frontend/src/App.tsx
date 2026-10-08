@@ -96,8 +96,9 @@ export const App: React.FC = () => {
   const handleRunOptimize = useCallback(async (customReq?: JourneyRequest) => {
     const reqToRun = customReq ?? requestRef.current;
     setIsLoading(true);
+    const minDelay = new Promise((resolve) => setTimeout(resolve, 850));
     try {
-      const res = await optimizeJourney(reqToRun);
+      const [res] = await Promise.all([optimizeJourney(reqToRun), minDelay]);
       setOptimizationResult(res);
       if (res.recommended_route) {
         setSelectedRoute(res.recommended_route);
@@ -254,6 +255,7 @@ export const App: React.FC = () => {
                 onSelectRoute={(r) => setSelectedRoute(r)}
                 onOpenSignalsModal={() => setIsEvidenceOpen(true)}
                 onOpenScoreModal={() => setIsScoreModalOpen(true)}
+                isLoading={isLoading}
               />
             ) : (
               <div className="bg-white dark:bg-[#0D1527] rounded-3xl border border-slate-200 dark:border-slate-800 p-10 text-center space-y-4 shadow-sm animate-pulse">
@@ -311,6 +313,7 @@ export const App: React.FC = () => {
               <InteractiveMapPanel
                 request={request}
                 selectedRoute={currentRoute}
+                isLoading={isLoading}
               />
             )}
           </div>

@@ -51,8 +51,11 @@ def health_check():
 
 @router.get("/serpapi/status")
 def check_serpapi_status(serp_client: SerpApiClient = Depends(get_serpapi_client)):
-    """Verifies whether SERPAPI_API_KEY is configured and active."""
-    return serp_client.test_connection()
+    """Verifies whether SERPAPI_API_KEY is configured and active. Maps & route optimization work 100% without an API key."""
+    status = serp_client.test_connection()
+    status["api_key_required_for_maps"] = False
+    status["engine_status"] = "Autonomous Mobility Engine (100% operational with or without external API keys)"
+    return status
 
 @router.post("/journey/optimize", response_model=OptimizationResult)
 def optimize_route(request: JourneyRequest, serp_client: SerpApiClient = Depends(get_serpapi_client), db: Session = Depends(get_db)):

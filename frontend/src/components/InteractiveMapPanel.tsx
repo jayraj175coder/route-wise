@@ -23,6 +23,7 @@ import {
 interface InteractiveMapPanelProps {
   request: JourneyRequest;
   selectedRoute: CandidateRoute;
+  isLoading?: boolean;
 }
 
 type MapMode = 'map' | 'satellite' | 'traffic';
@@ -134,15 +135,33 @@ function resolveCoords(name: string): [number, number] | null {
   return null;
 }
 
+const SCANNING_STEPS = [
+  '🛰️ Triangulating multi-modal route corridors...',
+  '🚆 Polling Mumbai Suburban train timetable & delays...',
+  '🚗 Analyzing live Western & Eastern Express traffic...',
+  '⚡ Balancing Pareto frontier (Time vs Cost vs Risk)...',
+  '🎯 Finalizing optimal itinerary for you...',
+];
+
 export const InteractiveMapPanel: React.FC<InteractiveMapPanelProps> = ({
   request,
   selectedRoute,
+  isLoading,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const [mapMode, setMapMode] = useState<MapMode>('map');
   const [activeBounds, setActiveBounds] = useState<L.LatLngBounds | null>(null);
+  const [scanStepIndex, setScanStepIndex] = useState(0);
+
+  useEffect(() => {
+    if (!isLoading) return;
+    const interval = setInterval(() => {
+      setScanStepIndex((prev) => (prev + 1) % SCANNING_STEPS.length);
+    }, 700);
+    return () => clearInterval(interval);
+  }, [isLoading]);
 
   // Initialize Leaflet map
   useEffect(() => {
@@ -519,6 +538,55 @@ export const InteractiveMapPanel: React.FC<InteractiveMapPanelProps> = ({
           className="w-full flex-1 h-full z-0 cursor-grab active:cursor-grabbing"
         />
 
+        {/* Dynamic Finding & Radar Scan HUD Overlay when isLoading is true */}
+        {isLoading && (
+          <div className="absolute inset-0 z-30 bg-slate-950/75 backdrop-blur-[2px] flex flex-col items-center justify-center p-6 text-white transition-all duration-300 overflow-hidden select-none">
+            {/* Pulsing Concentric Radar Rings */}
+            <div className="relative w-64 h-64 flex items-center justify-center">
+              {/* Outer Ring */}
+              <div className="absolute w-60 h-60 rounded-full border border-cyan-400/20" />
+              {/* Mid Ring */}
+              <div className="absolute w-44 h-44 rounded-full border border-cyan-400/30" />
+              {/* Inner Ring */}
+              <div className="absolute w-28 h-28 rounded-full border border-cyan-400/40" />
+
+              {/* Pulsing radar waves */}
+              <div className="absolute inset-0 rounded-full border border-cyan-400/60 animate-radar-ripple" />
+              <div className="absolute inset-0 rounded-full border border-blue-400/50 animate-radar-ripple-delayed" />
+
+              {/* Sweeping radar cone */}
+              <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,transparent_0deg,transparent_270deg,rgba(6,182,212,0.4)_360deg)] animate-radar-sweep pointer-events-none" />
+
+              {/* Center Beacon */}
+              <div className="relative z-10 flex flex-col items-center">
+                <div className="w-5 h-5 rounded-full bg-cyan-400 shadow-[0_0_20px_#22d3ee] flex items-center justify-center animate-pulse">
+                  <div className="w-2 h-2 rounded-full bg-white" />
+                </div>
+              </div>
+
+              {/* Crosshair grid lines */}
+              <div className="absolute w-full h-[1px] bg-cyan-400/20" />
+              <div className="absolute h-full w-[1px] bg-cyan-400/20" />
+            </div>
+
+            {/* Live Search Status Card */}
+            <div className="mt-4 bg-slate-900/95 border border-cyan-500/40 shadow-2xl rounded-2xl px-5 py-3 text-center max-w-[300px] space-y-1.5 backdrop-blur-md">
+              <div className="flex items-center justify-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+                <span className="text-xs font-black tracking-wide text-cyan-300 uppercase">
+                  Finding Optimal Routes
+                </span>
+              </div>
+              <p className="text-[11px] font-semibold text-slate-200 leading-snug animate-pulse min-h-[32px] flex items-center justify-center">
+                {SCANNING_STEPS[scanStepIndex]}
+              </p>
+              <div className="text-[10px] text-cyan-400/90 font-mono tracking-tight pt-0.5 border-t border-slate-800">
+                {request.origin || 'Origin'} ➔ {request.destination || 'Destination'}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Bottom Floating Legend inside Map */}
         <div className="absolute bottom-3 left-4 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-3.5 py-1.5 rounded-full shadow-md border border-slate-200/80 dark:border-slate-700 flex items-center gap-3 text-[11px] font-bold">
           <div className="flex items-center gap-1.5 text-orange-600 dark:text-orange-400">
@@ -537,9 +605,20 @@ export const InteractiveMapPanel: React.FC<InteractiveMapPanelProps> = ({
       </div>
 
       {/* 2. ROUTE OVERVIEW CARD (Matching Screenshot exactly) */}
-      <div className="bg-white dark:bg-[#0D1527] rounded-3xl p-5 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-4">
+      <div className="bg-white dark:bg-[#0D1527] rounded-3xl p-5 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-4 relative overflow-hidden">
+        {isLoading && (
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 via-cyan-400 to-emerald-400 animate-pulse" />
+        )}
+
         <div className="flex items-center justify-between">
-          <h3 className="font-heading text-sm font-black text-slate-900 dark:text-white">Route Overview</h3>
+          <h3 className="font-heading text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
+            <span>Route Overview</span>
+            {isLoading && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-50 dark:bg-cyan-950/50 text-cyan-600 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-800 animate-pulse">
+                Optimizing...
+              </span>
+            )}
+          </h3>
           <button className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" title="Expand View">
             <Maximize2 className="w-4 h-4" />
           </button>
@@ -549,10 +628,14 @@ export const InteractiveMapPanel: React.FC<InteractiveMapPanelProps> = ({
         <div className="grid grid-cols-4 gap-2 text-center">
           <div className="flex flex-col items-center">
             <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-1">
-              <Clock className="w-4 h-4" />
+              <Clock className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             </div>
             <span className="text-sm font-black text-slate-900 dark:text-white">
-              {Math.round(selectedRoute.total_duration_minutes)} min
+              {isLoading ? (
+                <span className="animate-pulse text-blue-600 dark:text-blue-400 text-xs">Timing...</span>
+              ) : (
+                `${Math.round(selectedRoute.total_duration_minutes)} min`
+              )}
             </span>
             <span className="text-[10px] text-slate-400 font-bold">Total Time</span>
           </div>
@@ -561,7 +644,11 @@ export const InteractiveMapPanel: React.FC<InteractiveMapPanelProps> = ({
               <IndianRupee className="w-4 h-4" />
             </div>
             <span className="text-sm font-black text-slate-900 dark:text-white">
-              ₹{Math.round(selectedRoute.estimated_cost)}
+              {isLoading ? (
+                <span className="animate-pulse text-emerald-600 dark:text-emerald-400 text-xs">Pricing...</span>
+              ) : (
+                `₹${Math.round(selectedRoute.estimated_cost)}`
+              )}
             </span>
             <span className="text-[10px] text-slate-400 font-bold">Total Cost</span>
           </div>
@@ -569,14 +656,26 @@ export const InteractiveMapPanel: React.FC<InteractiveMapPanelProps> = ({
             <div className="w-8 h-8 rounded-full bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center mb-1">
               <RouteIcon className="w-4 h-4" />
             </div>
-            <span className="text-sm font-black text-slate-900 dark:text-white">{stagesCount}</span>
+            <span className="text-sm font-black text-slate-900 dark:text-white">
+              {isLoading ? (
+                <span className="animate-pulse text-sky-600 dark:text-sky-400 text-xs">Routing...</span>
+              ) : (
+                stagesCount
+              )}
+            </span>
             <span className="text-[10px] text-slate-400 font-bold">Stages</span>
           </div>
           <div className="flex flex-col items-center">
             <div className="w-8 h-8 rounded-full bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mb-1">
               <Shuffle className="w-4 h-4" />
             </div>
-            <span className="text-sm font-black text-slate-900 dark:text-white">{selectedRoute.transfer_count}</span>
+            <span className="text-sm font-black text-slate-900 dark:text-white">
+              {isLoading ? (
+                <span className="animate-pulse text-rose-600 dark:text-rose-400 text-xs">Evaluating...</span>
+              ) : (
+                selectedRoute.transfer_count
+              )}
+            </span>
             <span className="text-[10px] text-slate-400 font-bold">Transfers</span>
           </div>
         </div>
@@ -586,28 +685,36 @@ export const InteractiveMapPanel: React.FC<InteractiveMapPanelProps> = ({
           <div className="flex items-center gap-1.5">
             <Footprints className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
             <div>
-              <div className="font-bold text-slate-900 dark:text-white">{totalWalkMeters} m</div>
+              <div className="font-bold text-slate-900 dark:text-white">
+                {isLoading ? '...' : `${totalWalkMeters} m`}
+              </div>
               <div className="text-[9px] text-slate-400">Total Walking</div>
             </div>
           </div>
           <div className="flex items-center gap-1.5">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <div>
-              <div className="font-bold text-slate-900 dark:text-white">Low</div>
+              <div className="font-bold text-slate-900 dark:text-white">
+                {isLoading ? 'Scanning' : 'Low'}
+              </div>
               <div className="text-[9px] text-slate-400">Disruption Risk</div>
             </div>
           </div>
           <div className="flex items-center gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
             <div>
-              <div className="font-bold text-slate-900 dark:text-white">On Time</div>
+              <div className="font-bold text-slate-900 dark:text-white">
+                {isLoading ? 'Checking' : 'On Time'}
+              </div>
               <div className="text-[9px] text-slate-400">High Reliability</div>
             </div>
           </div>
           <div className="flex items-center gap-1.5">
             <Sun className="w-3.5 h-3.5 text-amber-500 shrink-0" />
             <div>
-              <div className="font-bold text-slate-900 dark:text-white">{selectedRoute.arrival_buffer_minutes || 35} min</div>
+              <div className="font-bold text-slate-900 dark:text-white">
+                {isLoading ? '...' : `${selectedRoute.arrival_buffer_minutes || 35} min`}
+              </div>
               <div className="text-[9px] text-slate-400">Earlier Buffer</div>
             </div>
           </div>
