@@ -13,6 +13,9 @@ import {
 import { Navbar } from './components/Navbar';
 import { PlanYourJourney } from './components/PlanYourJourney';
 import { CenterDashboard } from './components/CenterDashboard';
+import { InteractiveMapPanel } from './components/InteractiveMapPanel';
+import { AlternativesModal } from './components/AlternativesModal';
+import { ScoreBreakdownModal } from './components/ScoreBreakdownModal';
 import { TravelerPreferencesSidebar } from './components/TravelerPreferencesSidebar';
 import { WhatIfSimulator } from './components/WhatIfSimulator';
 import { DecisionSensitivity } from './components/DecisionSensitivity';
@@ -23,40 +26,45 @@ import { DisclaimerFooter } from './components/DisclaimerFooter';
 import { SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
 
 export const App: React.FC = () => {
+  // Default request matching screenshot scenario
   const [request, setRequest] = useState<JourneyRequest>({
-    origin: 'Dadar, Mumbai',
-    destination: 'Hinjawadi Phase 1, Pune',
+    origin: 'Rabale, New Mumbai',
+    destination: 'Thane',
     arrival_deadline: '10:10 AM',
-    max_budget: 1500,
+    max_budget: 100,
     max_walking_distance_meters: 1000,
-    max_transfers: 2,
+    max_transfers: 3,
     intent: 'general',
     weights: {
-      reliability: 0.30,
-      time: 0.30,
+      reliability: 0.35,
+      time: 0.35,
       cost: 0.20,
-      walking: 0.10,
-      comfort: 0.10,
+      walking: 0.05,
+      comfort: 0.05,
     },
   });
 
   const [optimizationResult, setOptimizationResult] = useState<OptimizationResult | null>(null);
   const [selectedRoute, setSelectedRoute] = useState<CandidateRoute | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [activeNavTab, setActiveNavTab] = useState<string>('plan');
+
+  // Modals state
+  const [isAlternativesOpen, setIsAlternativesOpen] = useState<boolean>(false);
+  const [isScoreModalOpen, setIsScoreModalOpen] = useState<boolean>(false);
   const [isEvidenceOpen, setIsEvidenceOpen] = useState<boolean>(false);
   const [isPipelineOpen, setIsPipelineOpen] = useState<boolean>(false);
+  const [isPreferencesOpen, setIsPreferencesOpen] = useState<boolean>(false);
   const [reoptimizeData, setReoptimizeData] = useState<ReoptimizeResult | null>(null);
   const [hasDisruption, setHasDisruption] = useState<boolean>(false);
-  const [apiConnected] = useState<boolean>(true);
-  const [isPreferencesOpen, setIsPreferencesOpen] = useState<boolean>(false);
   const [showAdvancedTools, setShowAdvancedTools] = useState<boolean>(false);
 
-  const resultsRef = useRef<HTMLDivElement>(null);
-  // Always-fresh ref so closures never see stale request
   const requestRef = useRef(request);
-  useEffect(() => { requestRef.current = request; }, [request]);
+  useEffect(() => {
+    requestRef.current = request;
+  }, [request]);
 
-  // Initial optimization on mount — runs once
+  // Initial optimization on mount
   const didMountRef = useRef(false);
   useEffect(() => {
     if (!didMountRef.current) {
@@ -66,7 +74,6 @@ export const App: React.FC = () => {
   }, []);
 
   const handleRunOptimize = useCallback(async (customReq?: JourneyRequest) => {
-    // Always use the explicitly passed req, or fall back to the ref (never stale)
     const reqToRun = customReq ?? requestRef.current;
     setIsLoading(true);
     try {
@@ -76,14 +83,27 @@ export const App: React.FC = () => {
         setSelectedRoute(res.recommended_route);
       }
     } catch (err) {
-      console.error(err);
+      console.error('Optimization error:', err);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  const handleTriggerReoptimize = () => {
-    setIsPipelineOpen(true);
+  const handleNavTabSelect = (tab: string) => {
+    setActiveNavTab(tab);
+    if (tab === 'alternatives') {
+      setIsAlternativesOpen(true);
+    } else if (tab === 'signals') {
+      setIsEvidenceOpen(true);
+    } else if (tab === 'score') {
+      setIsScoreModalOpen(true);
+    } else if (tab === 'map') {
+      // scroll to map or highlight map on mobile
+      const mapEl = document.getElementById('map-panel-container');
+      if (mapEl) {
+        mapEl.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
   };
 
   const handlePipelineCompleted = async () => {
@@ -94,7 +114,7 @@ export const App: React.FC = () => {
 
     try {
       if (nextDisruption) {
-        const prevId = selectedRoute?.id || 'route-rail-lastmile';
+        const prevId = selectedRoute?.id || 'route-local-suburban-train';
         const reopt = await reoptimizeJourney(request, prevId);
         setReoptimizeData(reopt);
         setOptimizationResult(reopt.optimization_result);
@@ -130,9 +150,9 @@ export const App: React.FC = () => {
       origin: item.origin,
       destination: item.destination,
       arrival_deadline: item.deadline || '10:10 AM',
-      max_budget: item.budget || 1500,
+      max_budget: item.budget || 100,
       max_walking_distance_meters: item.walking_limit || 1000,
-      max_transfers: item.max_transfers ?? 2,
+      max_transfers: item.max_transfers ?? 3,
       intent: (item.purpose || 'general') as any,
     };
     setRequest(updatedReq);
@@ -147,8 +167,6 @@ export const App: React.FC = () => {
       updatedWeights = { reliability: 0.20, time: 0.15, cost: 0.50, walking: 0.10, comfort: 0.05 };
     } else if (prefs.travel_style === 'fastest') {
       updatedWeights = { reliability: 0.25, time: 0.50, cost: 0.10, walking: 0.10, comfort: 0.05 };
-    } else if (prefs.travel_style === 'comfort') {
-      updatedWeights = { reliability: 0.25, time: 0.15, cost: 0.15, walking: 0.15, comfort: 0.30 };
     }
 
     const updated = {
@@ -161,21 +179,28 @@ export const App: React.FC = () => {
   };
 
   const currentRoute = selectedRoute || optimizationResult?.recommended_route;
+  const allRoutes = optimizationResult
+    ? [
+        ...(optimizationResult.recommended_route ? [optimizationResult.recommended_route] : []),
+        ...optimizationResult.alternative_routes,
+      ]
+    : [];
 
   return (
     <div className="min-h-screen bg-[#F0F4F8] text-slate-800 flex flex-col font-sans selection:bg-[#FF7A1A]/20 selection:text-slate-900">
-      {/* Navbar */}
+      {/* Navbar with exact tabs */}
       <Navbar
-        apiConnected={apiConnected}
+        apiConnected={true}
+        activeNavTab={activeNavTab}
+        onSelectNavTab={handleNavTabSelect}
         onRefresh={() => handleRunOptimize()}
         onTogglePreferences={() => setIsPreferencesOpen(!isPreferencesOpen)}
         isPreferencesOpen={isPreferencesOpen}
       />
 
-      {/* Main Layout */}
-      <main className="flex-1 flex flex-col w-full max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-5 gap-4">
-
-        {/* Re-optimization Banner */}
+      {/* Main 3-Column Layout */}
+      <main className="flex-1 flex flex-col w-full max-w-[1780px] mx-auto px-4 sm:px-6 lg:px-8 py-5 gap-4">
+        {/* Re-optimization Alert Banner */}
         {reoptimizeData && (
           <ReoptimizeBanner
             previousRoute={reoptimizeData.previous_route}
@@ -186,11 +211,10 @@ export const App: React.FC = () => {
           />
         )}
 
-        {/* Two-Panel Split */}
-        <div className="flex gap-5 items-start flex-1">
-
-          {/* LEFT PANEL — Input Sidebar */}
-          <aside className="w-[320px] xl:w-[340px] shrink-0 sticky top-[72px]">
+        {/* 3-PANEL SIDE-BY-SIDE SPLIT */}
+        <div className="flex flex-col lg:flex-row gap-5 items-start flex-1">
+          {/* 1. LEFT PANEL — Plan Your Journey */}
+          <aside className="w-full lg:w-[320px] xl:w-[340px] shrink-0 sticky top-[76px] z-10">
             <PlanYourJourney
               request={request}
               onChangeRequest={setRequest}
@@ -199,8 +223,8 @@ export const App: React.FC = () => {
             />
           </aside>
 
-          {/* RIGHT PANEL — Results */}
-          <div className="flex-1 min-w-0 flex flex-col gap-4" ref={resultsRef}>
+          {/* 2. CENTER PANEL — Route Hero & Timeline */}
+          <div className="flex-1 min-w-0 w-full flex flex-col gap-4">
             {currentRoute && optimizationResult ? (
               <CenterDashboard
                 request={request}
@@ -208,25 +232,25 @@ export const App: React.FC = () => {
                 selectedRoute={currentRoute}
                 onSelectRoute={(r) => setSelectedRoute(r)}
                 onOpenSignalsModal={() => setIsEvidenceOpen(true)}
-                onOpenScoreModal={() => setIsEvidenceOpen(true)}
+                onOpenScoreModal={() => setIsScoreModalOpen(true)}
               />
             ) : (
-              <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center space-y-4 shadow-sm animate-pulse">
+              <div className="bg-white rounded-3xl border border-slate-200 p-10 text-center space-y-4 shadow-sm animate-pulse">
                 <div className="w-12 h-12 bg-slate-200 rounded-2xl mx-auto" />
                 <div className="h-5 bg-slate-200 rounded w-1/3 mx-auto" />
                 <div className="h-4 bg-slate-100 rounded w-1/2 mx-auto" />
-                <div className="h-72 bg-slate-100 rounded-xl mt-6" />
+                <div className="h-72 bg-slate-100 rounded-2xl mt-6" />
               </div>
             )}
 
-            {/* Advanced Decision Tools — Collapsible */}
+            {/* Advanced Decision Tools Collapsible */}
             <div className="border-t border-slate-200/60 pt-1">
               <button
                 onClick={() => setShowAdvancedTools(!showAdvancedTools)}
-                className="flex items-center justify-between w-full px-4 py-3 rounded-xl bg-white border border-slate-200/90 shadow-sm hover:bg-slate-50 transition-all text-left"
+                className="flex items-center justify-between w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 shadow-xs hover:bg-slate-50 transition-all text-left"
               >
                 <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <div className="w-7 h-7 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
                     <SlidersHorizontal className="w-4 h-4" />
                   </div>
                   <div>
@@ -246,7 +270,7 @@ export const App: React.FC = () => {
               </button>
 
               {showAdvancedTools && currentRoute && (
-                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
                   <DecisionSensitivity route={currentRoute} />
                   <WhatIfSimulator
                     request={request}
@@ -256,12 +280,55 @@ export const App: React.FC = () => {
               )}
             </div>
           </div>
+
+          {/* 3. RIGHT PANEL — Interactive Map with Satellite/Map/Traffic */}
+          <div
+            id="map-panel-container"
+            className="w-full lg:w-[380px] xl:w-[410px] 2xl:w-[440px] shrink-0 sticky top-[76px] z-10"
+          >
+            {currentRoute && (
+              <InteractiveMapPanel
+                request={request}
+                selectedRoute={currentRoute}
+              />
+            )}
+          </div>
         </div>
       </main>
 
-      {/* Traveler Preferences Sidebar — Slide-over */}
+      {/* Alternatives Modal */}
+      <AlternativesModal
+        isOpen={isAlternativesOpen}
+        onClose={() => setIsAlternativesOpen(false)}
+        routes={allRoutes}
+        selectedRouteId={currentRoute?.id || ''}
+        onSelectRoute={(r) => setSelectedRoute(r)}
+      />
+
+      {/* Score Breakdown Modal */}
+      {currentRoute && optimizationResult && (
+        <ScoreBreakdownModal
+          isOpen={isScoreModalOpen}
+          onClose={() => setIsScoreModalOpen(false)}
+          route={currentRoute}
+          explanation={optimizationResult.explanation}
+          budgetCeiling={request.max_budget}
+        />
+      )}
+
+      {/* Disruption Evidence Modal */}
+      {currentRoute && (
+        <EvidenceModal
+          isOpen={isEvidenceOpen}
+          onClose={() => setIsEvidenceOpen(false)}
+          disruptions={currentRoute.disruption_signals}
+          riskFactors={currentRoute.risk_factors}
+        />
+      )}
+
+      {/* Traveler Preferences Slide-Over */}
       {isPreferencesOpen && (
-        <div className="fixed inset-0 z-40 flex justify-end">
+        <div className="fixed inset-0 z-50 flex justify-end">
           <div
             className="absolute inset-0 bg-black/30 backdrop-blur-sm"
             onClick={() => setIsPreferencesOpen(false)}
@@ -275,16 +342,6 @@ export const App: React.FC = () => {
             />
           </div>
         </div>
-      )}
-
-      {/* Disruption Evidence Modal */}
-      {currentRoute && (
-        <EvidenceModal
-          isOpen={isEvidenceOpen}
-          onClose={() => setIsEvidenceOpen(false)}
-          disruptions={currentRoute.disruption_signals}
-          riskFactors={currentRoute.risk_factors}
-        />
       )}
 
       {/* Re-Optimization Pipeline Modal */}

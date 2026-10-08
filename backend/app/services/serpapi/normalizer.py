@@ -291,9 +291,10 @@ def normalize_serpapi_directions(
         arr_h_fmt = arr_h if arr_h <= 12 else arr_h - 12
         arr_time = f"{arr_h_fmt:02d}:{arr_m:02d} {ampm}"
 
+        mode_prefix = "transit" if is_transit else "driving"
         routes.append(
             CandidateRoute(
-                id=f"serp-route-{idx}",
+                id=f"serp-{mode_prefix}-{idx}",
                 mode_summary=mode_summary,
                 segments=segments,
                 total_duration_minutes=round(duration_mins, 1),
