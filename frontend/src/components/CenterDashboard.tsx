@@ -19,6 +19,8 @@ import {
   MapPin,
   Route as RouteIcon,
   Navigation,
+  ChevronDown,
+  RefreshCw,
 } from 'lucide-react';
 
 interface CenterDashboardProps {
@@ -231,6 +233,7 @@ export const CenterDashboard: React.FC<CenterDashboardProps> = ({
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-700/80 backdrop-blur-md border border-emerald-500/40 text-emerald-100 text-xs font-bold shadow-xs">
               <Crown className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
               <span>Recommended Option</span>
+              <RefreshCw className="w-3 h-3 text-emerald-300 ml-0.5 opacity-80" />
             </div>
 
             {/* Score Ring Glassmorphism Badge */}
@@ -399,18 +402,25 @@ export const CenterDashboard: React.FC<CenterDashboardProps> = ({
         </div>
 
         {/* Timeline Itinerary */}
-        <div className="relative pl-6 space-y-4">
+        <div className="relative pl-8 space-y-4">
           {/* Vertical Connecting Line */}
-          <div className="absolute left-[11px] top-6 bottom-6 w-0.5 bg-blue-500 dark:bg-blue-600 z-0" />
+          <div className="absolute left-[13px] top-6 bottom-6 w-0.5 bg-blue-500 dark:bg-blue-600 z-0" />
 
           {stages.map((seg, idx) => {
             const { Icon, color, badgeColor, label } = getModeIcon(seg.mode, seg.instructions);
             const thumbUrl = getModeThumbnail(seg.mode, seg.instructions);
+            const isFinalStage = idx === stages.length - 1;
 
             return (
               <div key={seg.id || idx} className="relative z-10">
-                {/* Node Milestone Circle on Timeline Line */}
-                <div className="absolute -left-[29px] top-7 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-[#0D1527] bg-blue-500 shadow-xs ring-2 ring-blue-100 dark:ring-blue-900" />
+                {/* Numbered Milestone Circle matching screenshot (Blue for 1, 2; Green for 3) */}
+                <div
+                  className={`absolute -left-[32px] top-5 w-6 h-6 rounded-full flex items-center justify-center font-black text-xs text-white shadow-xs ring-4 ring-white dark:ring-[#0D1527] z-10 ${
+                    isFinalStage ? 'bg-emerald-600' : 'bg-[#1D68FE]'
+                  }`}
+                >
+                  {idx + 1}
+                </div>
 
                 {/* Card Container */}
                 <div className="bg-slate-50/70 dark:bg-slate-800/40 hover:bg-slate-50/90 dark:hover:bg-slate-800/70 transition-all border border-slate-200/80 dark:border-slate-700/80 rounded-2xl p-4 flex items-center justify-between gap-4">
@@ -430,7 +440,7 @@ export const CenterDashboard: React.FC<CenterDashboardProps> = ({
                         <span
                           className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${badgeColor}`}
                         >
-                          {idx + 1}. {label}
+                          {idx + 1} {label}
                         </span>
                         <h4 className="text-xs font-black text-slate-900 dark:text-white truncate">
                           {seg.from_name} → {seg.to_name}
@@ -467,8 +477,8 @@ export const CenterDashboard: React.FC<CenterDashboardProps> = ({
                     </div>
                   </div>
 
-                  {/* Right Side: Cost Pill & Thumbnail Photo */}
-                  <div className="flex items-center gap-4 shrink-0">
+                  {/* Right Side: Cost Pill & Thumbnail Photo & Chevron Down */}
+                  <div className="flex items-center gap-3.5 shrink-0">
                     {/* Cost Badge */}
                     <div className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-700/80 border border-slate-200 dark:border-slate-600 text-xs font-black text-slate-900 dark:text-white shadow-2xs">
                       ₹{Math.round(seg.cost)}
@@ -483,6 +493,15 @@ export const CenterDashboard: React.FC<CenterDashboardProps> = ({
                         loading="lazy"
                       />
                     </div>
+
+                    {/* Expand Chevron Icon */}
+                    <button
+                      type="button"
+                      className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 p-0.5"
+                      title="Stage details"
+                    >
+                      <ChevronDown className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               </div>
