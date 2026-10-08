@@ -144,32 +144,32 @@ def generate_multimodal_candidates(
                 RouteSegment(
                     id="seg-local-walk1",
                     mode=TransportMode.WALKING,
-                    from_name="Rabale, New Mumbai",
-                    to_name="Rabale",
+                    from_name="Rabale (Origin)",
+                    to_name="Rabale Auto Stand",
                     duration_minutes=2.0,
                     distance_meters=150.0,
                     cost=0.0,
-                    instructions="Walk 150 m to local auto / cab stand"
+                    instructions="Walk 150 m to local auto stand"
                 ),
                 RouteSegment(
                     id="seg-local-auto",
                     mode=TransportMode.AUTO,
-                    from_name="Rabale, New Mumbai",
-                    to_name="Rabale",
+                    from_name="Rabale Auto Stand",
+                    to_name="Rabale Railway Station",
                     duration_minutes=4.0,
                     distance_meters=1300.0,
                     cost=20.0,
-                    instructions="Quick Auto / Share Cab to Rabale"
+                    instructions="Quick Auto / Share Cab to Rabale Railway Station"
                 ),
                 RouteSegment(
                     id="seg-local-train",
                     mode=TransportMode.TRAIN,
-                    from_name="Rabale",
-                    to_name="Thane",
+                    from_name="Rabale Railway Station",
+                    to_name="Thane Railway Station",
                     duration_minutes=11.0,
                     distance_meters=6000.0,
                     cost=10.0,
-                    instructions="Board Suburban Local Train: Thane (S3) 9:48:08 9:46:00. Vashi to Thane from Rabale to Thane (2 intermediate stops)",
+                    instructions="Board Suburban Local Train (Trans-Harbour Line): Thane bound train from Rabale to Thane (2 intermediate stops: Airoli, Digha Gaon)",
                     schedule_details="Central Railway • Punctual Right of Way Corridor"
                 )
             ]

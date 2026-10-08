@@ -31,7 +31,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   const navTabs = [
     { id: 'plan', label: 'Plan Journey' },
     { id: 'alternatives', label: 'Alternatives' },
-    { id: 'map', label: 'Map' },
     { id: 'signals', label: 'Live Signals' },
     { id: 'score', label: 'Score Breakdown' },
   ];

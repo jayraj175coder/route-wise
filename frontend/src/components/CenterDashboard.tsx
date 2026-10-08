@@ -31,53 +31,105 @@ interface CenterDashboardProps {
 }
 
 const MODE_IMAGES: Record<string, string> = {
-  walking: 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=400&q=80',
-  auto: 'https://images.unsplash.com/photo-1598970434795-0c54fe7c0648?auto=format&fit=crop&w=400&q=80',
-  train: 'https://images.unsplash.com/photo-1515165562839-978bbcf18277?auto=format&fit=crop&w=400&q=80',
-  bus: 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?auto=format&fit=crop&w=400&q=80',
+  // Pedestrian walking along sidewalk
+  walking: 'https://images.unsplash.com/photo-1506197603052-3cc9c3a201bd?auto=format&fit=crop&w=400&q=80',
+  // Indian Auto Rickshaw (Yellow & Black / Green)
+  auto: 'https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&w=400&q=80',
+  // Suburban / Local commuter train
+  train: 'https://images.unsplash.com/photo-1474487548417-781cb71495f3?auto=format&fit=crop&w=400&q=80',
+  // City transit public commuter bus
+  bus: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=400&q=80',
+  // Motorbike / two-wheeler commuter
   two_wheeler: 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=400&q=80',
-  driving: 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=400&q=80',
+  // Taxi / Private Cab
+  driving: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=400&q=80',
+  // Commercial airplane
   flight: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=400&q=80',
+  // Metro rail transit
+  metro: 'https://images.unsplash.com/photo-1517649763962-0c623266ddc0?auto=format&fit=crop&w=400&q=80',
 };
 
 function getModeThumbnail(mode: string, instructions?: string): string {
   const m = mode.toLowerCase();
   const inst = (instructions || '').toLowerCase();
-  if (inst.includes('auto') || inst.includes('rickshaw') || m === 'auto') {
-    return MODE_IMAGES.auto;
+
+  // 1. Check walking first — "Walk 150m to auto stand" is WALKING, not auto
+  if (
+    m === 'walking' ||
+    inst.startsWith('walk') ||
+    inst.includes('foot') ||
+    (inst.includes('walk') && !inst.includes('auto to'))
+  ) {
+    return MODE_IMAGES.walking;
   }
-  if (inst.includes('bus') || m === 'bus') {
-    return MODE_IMAGES.bus;
-  }
-  if (inst.includes('train') || inst.includes('rail') || m === 'train') {
+  // 2. Train / Suburban rail
+  if (
+    m === 'train' ||
+    inst.includes('suburban') ||
+    inst.includes('local train') ||
+    inst.includes('rail') ||
+    inst.includes('central railway') ||
+    inst.includes('western railway') ||
+    inst.includes('train')
+  ) {
     return MODE_IMAGES.train;
   }
-  if (inst.includes('bike') || m === 'two_wheeler') {
+  // 3. Metro
+  if (m === 'metro' || inst.includes('metro')) {
+    return MODE_IMAGES.metro;
+  }
+  // 4. Auto Rickshaw
+  if (m === 'auto' || inst.includes('auto') || inst.includes('rickshaw') || inst.includes('share auto') || inst.includes('tuk tuk')) {
+    return MODE_IMAGES.auto;
+  }
+  // 5. Bus
+  if (m === 'bus' || inst.includes('bus') || inst.includes('best') || inst.includes('nmmt') || inst.includes('tmt')) {
+    return MODE_IMAGES.bus;
+  }
+  // 6. Two-wheeler / Bike taxi
+  if (m === 'two_wheeler' || inst.includes('bike') || inst.includes('motorcycle') || inst.includes('rapido')) {
     return MODE_IMAGES.two_wheeler;
   }
+  // 7. Driving / Cab / Uber / Ola
+  if (m === 'driving' || inst.includes('cab') || inst.includes('taxi') || inst.includes('uber') || inst.includes('ola')) {
+    return MODE_IMAGES.driving;
+  }
+  // 8. Flight
+  if (m === 'flight' || inst.includes('flight') || inst.includes('airline')) {
+    return MODE_IMAGES.flight;
+  }
+
   return MODE_IMAGES[m] || MODE_IMAGES.walking;
 }
 
 function getModeIcon(mode: string, instructions?: string) {
   const m = mode.toLowerCase();
   const inst = (instructions || '').toLowerCase();
-  if (inst.includes('auto') || inst.includes('rickshaw') || m === 'auto') {
+
+  // 1. Walking check takes precedence for pedestrian connector segments
+  if (
+    m === 'walking' ||
+    inst.startsWith('walk') ||
+    inst.includes('foot') ||
+    (inst.includes('walk') && !inst.includes('auto to'))
+  ) {
     return {
-      Icon: Car,
-      color: 'text-amber-500 bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800',
-      badgeColor: 'bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300',
-      label: 'Auto',
+      Icon: Footprints,
+      color: 'text-orange-500 bg-orange-50 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800',
+      badgeColor: 'bg-orange-100 dark:bg-orange-900/60 text-orange-800 dark:text-orange-300',
+      label: 'Walk',
     };
   }
-  if (inst.includes('bus') || m === 'bus') {
-    return {
-      Icon: Bus,
-      color: 'text-teal-600 bg-teal-50 dark:bg-teal-950/40 border-teal-200 dark:border-teal-800',
-      badgeColor: 'bg-teal-100 dark:bg-teal-900/60 text-teal-800 dark:text-teal-300',
-      label: 'Bus',
-    };
-  }
-  if (inst.includes('train') || inst.includes('rail') || m === 'train') {
+  // 2. Suburban / Local Train
+  if (
+    m === 'train' ||
+    inst.includes('suburban') ||
+    inst.includes('local train') ||
+    inst.includes('rail') ||
+    inst.includes('central railway') ||
+    inst.includes('western railway') ||
+    inst.includes('train')
+  ) {
     return {
       Icon: Train,
       color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800',
@@ -85,7 +137,35 @@ function getModeIcon(mode: string, instructions?: string) {
       label: 'Local Train',
     };
   }
-  if (inst.includes('bike') || m === 'two_wheeler') {
+  // 3. Metro
+  if (m === 'metro' || inst.includes('metro')) {
+    return {
+      Icon: Train,
+      color: 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800',
+      badgeColor: 'bg-indigo-100 dark:bg-indigo-900/60 text-indigo-800 dark:text-indigo-300',
+      label: 'Metro',
+    };
+  }
+  // 4. Auto Rickshaw
+  if (m === 'auto' || inst.includes('auto') || inst.includes('rickshaw') || inst.includes('share auto')) {
+    return {
+      Icon: Car,
+      color: 'text-amber-500 bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800',
+      badgeColor: 'bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300',
+      label: 'Auto',
+    };
+  }
+  // 5. City Bus
+  if (m === 'bus' || inst.includes('bus')) {
+    return {
+      Icon: Bus,
+      color: 'text-teal-600 bg-teal-50 dark:bg-teal-950/40 border-teal-200 dark:border-teal-800',
+      badgeColor: 'bg-teal-100 dark:bg-teal-900/60 text-teal-800 dark:text-teal-300',
+      label: 'Bus',
+    };
+  }
+  // 6. Bike Taxi
+  if (m === 'two_wheeler' || inst.includes('bike') || inst.includes('motorcycle')) {
     return {
       Icon: Navigation,
       color: 'text-cyan-600 bg-cyan-50 dark:bg-cyan-950/40 border-cyan-200 dark:border-cyan-800',
@@ -93,7 +173,17 @@ function getModeIcon(mode: string, instructions?: string) {
       label: 'Bike Taxi',
     };
   }
-  if (m === 'flight') {
+  // 7. Cab / Taxi
+  if (m === 'driving' || inst.includes('cab') || inst.includes('taxi')) {
+    return {
+      Icon: Car,
+      color: 'text-blue-600 bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800',
+      badgeColor: 'bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300',
+      label: 'Cab',
+    };
+  }
+  // 8. Flight
+  if (m === 'flight' || inst.includes('flight')) {
     return {
       Icon: Plane,
       color: 'text-sky-600 bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800',
@@ -101,6 +191,7 @@ function getModeIcon(mode: string, instructions?: string) {
       label: 'Flight',
     };
   }
+
   return {
     Icon: Footprints,
     color: 'text-orange-500 bg-orange-50 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800',

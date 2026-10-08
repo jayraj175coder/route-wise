@@ -117,12 +117,6 @@ export const App: React.FC = () => {
       setIsEvidenceOpen(true);
     } else if (tab === 'score') {
       setIsScoreModalOpen(true);
-    } else if (tab === 'map') {
-      // scroll to map or highlight map on mobile
-      const mapEl = document.getElementById('map-panel-container');
-      if (mapEl) {
-        mapEl.scrollIntoView({ behavior: 'smooth' });
-      }
     }
   };
 
