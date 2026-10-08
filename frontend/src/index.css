@@ -69,3 +69,65 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   background: #E2E8F0 !important;
   font-family: 'Inter', sans-serif !important;
 }
+
+/* RouteWise Finding & Radar Animations */
+@keyframes radar-sweep {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes radar-ripple {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+@keyframes scan-beam {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(500%); }
+}
+
+@keyframes dash-travel {
+  to {
+    stroke-dashoffset: -32;
+  }
+}
+
+@keyframes shimmer-move {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-radar-sweep {
+  animation: radar-sweep 2.8s linear infinite;
+}
+
+.animate-radar-ripple {
+  animation: radar-ripple 2.2s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+}
+
+.animate-radar-ripple-delayed {
+  animation: radar-ripple 2.2s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+  animation-delay: 1.1s;
+}
+
+.animate-scan-beam {
+  animation: scan-beam 2.4s ease-in-out infinite;
+}
+
+.animate-dash-travel {
+  stroke-dasharray: 6 6;
+  animation: dash-travel 0.9s linear infinite;
+}
+
+.animate-shimmer-move {
+  animation: shimmer-move 1.8s ease-in-out infinite;
+}

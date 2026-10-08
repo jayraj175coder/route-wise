@@ -233,37 +233,6 @@ export const PlanYourJourney: React.FC<PlanYourJourneyProps> = ({
     });
   };
 
-  const handleExampleSelect = (type: 'rabale_thane' | 'cheapest') => {
-    if (type === 'rabale_thane') {
-      const updated: JourneyRequest = {
-        ...request,
-        origin: 'Rabale, New Mumbai',
-        destination: 'Thane',
-        arrival_deadline: '10:10 AM',
-        max_budget: 100,
-        max_walking_distance_meters: 1000,
-        max_transfers: 3,
-        intent: 'general',
-      };
-      onChangeRequest(updated);
-      onOptimize(updated);
-    } else if (type === 'cheapest') {
-      const updated: JourneyRequest = {
-        ...request,
-        intent: 'budget',
-        weights: {
-          cost: 0.6,
-          time: 0.15,
-          reliability: 0.15,
-          walking: 0.05,
-          comfort: 0.05,
-        },
-      };
-      onChangeRequest(updated);
-      onOptimize(updated);
-    }
-  };
-
   return (
     <div className="bg-white dark:bg-[#0D1527] rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-sm overflow-hidden space-y-4 pb-5 transition-colors duration-200">
       {/* Top Blue Hero Card matching Screenshot */}
@@ -290,25 +259,6 @@ export const PlanYourJourney: React.FC<PlanYourJourneyProps> = ({
 
       {/* Main Form Fields Container */}
       <div className="px-5 space-y-4">
-        {/* Examples Chips Line */}
-        <div className="flex items-center gap-2 text-xs flex-wrap">
-          <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-400">Examples:</span>
-          <button
-            type="button"
-            onClick={() => handleExampleSelect('rabale_thane')}
-            className="px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-[11px] font-bold text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors"
-          >
-            "Rabale to Thane by 10:10"
-          </button>
-          <button
-            type="button"
-            onClick={() => handleExampleSelect('cheapest')}
-            className="px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-[11px] font-bold text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors"
-          >
-            "Cheapest route"
-          </button>
-        </div>
-
         {/* From / To Inputs with Right Swap Button */}
         <div className="relative space-y-2">
           {/* From Input */}

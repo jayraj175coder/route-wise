@@ -17,9 +17,9 @@ export const DisclaimerFooter: React.FC = () => {
 
         {/* Center/Right: Subtle notice */}
         <div className="flex items-center gap-4 text-slate-400 dark:text-slate-500 text-[11px] text-center sm:text-right">
-          <span>Powered by live Google Maps & News signals via SerpApi</span>
+          <span>Leaflet & OpenStreetMap Vector Engine (No API Key Required)</span>
           <span className="hidden md:inline">•</span>
-          <span className="hidden md:inline">Internal decision ranking model</span>
+          <span className="hidden md:inline">Internal Pareto Decision Model</span>
         </div>
       </div>
     </footer>

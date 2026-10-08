@@ -79,13 +79,13 @@ class SerpApiClient:
         }
 
         try:
-            response = requests.get(self.base_url, params=params, timeout=5)
+            response = requests.get(self.base_url, params=params, timeout=1.5)
             if response.status_code == 200:
                 return response.json()
             logger.warning(f"SerpApi directions status {response.status_code}: {response.text}")
             return None
         except Exception as e:
-            logger.error(f"SerpApi directions call failed: {e}")
+            logger.info(f"SerpApi directions call failed or timed out ({e}). Seamlessly using internal engine.")
             return None
 
     # 2. Google Maps / Local (Transit hubs, stations, nearby transfer points)
@@ -102,12 +102,12 @@ class SerpApiClient:
             params["ll"] = location
 
         try:
-            response = requests.get(self.base_url, params=params, timeout=3)
+            response = requests.get(self.base_url, params=params, timeout=1.5)
             if response.status_code == 200:
                 return response.json()
             return None
         except Exception as e:
-            logger.error(f"SerpApi local search failed: {e}")
+            logger.info(f"SerpApi local search call failed or timed out: {e}")
             return None
 
     # 3. Google Web Search (Road closures, general highway updates)
@@ -122,12 +122,12 @@ class SerpApiClient:
         }
 
         try:
-            response = requests.get(self.base_url, params=params, timeout=3)
+            response = requests.get(self.base_url, params=params, timeout=1.5)
             if response.status_code == 200:
                 return response.json()
             return None
         except Exception as e:
-            logger.error(f"SerpApi web search failed: {e}")
+            logger.info(f"SerpApi web search failed or timed out: {e}")
             return None
 
     # 4. Google News (Real-time live disruption signals, accidents, traffic delays)
@@ -142,7 +142,7 @@ class SerpApiClient:
         }
 
         try:
-            response = requests.get(self.base_url, params=params, timeout=3)
+            response = requests.get(self.base_url, params=params, timeout=1.5)
             if response.status_code == 200:
                 return response.json()
             return None
