@@ -25,28 +25,35 @@ import {
   ArrowRight,
   X,
   Calendar,
-  Layers,
-  Info,
   SlidersHorizontal,
+  Info,
 } from 'lucide-react';
 import { VoiceInput } from './VoiceInput';
 
 interface PlanYourJourneyProps {
   request: JourneyRequest;
   onChangeRequest: (req: JourneyRequest) => void;
-  onOptimize: () => void;
+  onOptimize: (customReq?: JourneyRequest) => void;
   isLoading: boolean;
 }
 
 const INTENT_CARDS = [
-  { id: 'general' as JourneyIntent, label: 'General', desc: 'Balanced time, cost & comfort', icon: Compass },
-  { id: 'interview' as JourneyIntent, label: 'Interview', desc: 'Reliable & safe arrival', icon: Briefcase },
-  { id: 'exam' as JourneyIntent, label: 'Exam', desc: 'On-time with buffer', icon: GraduationCap },
-  { id: 'flight' as JourneyIntent, label: 'Flight', desc: 'Minimize transfer risk', icon: Plane },
-  { id: 'emergency' as JourneyIntent, label: 'Emergency', desc: 'Fastest feasible route', icon: AlertTriangle },
-  { id: 'family' as JourneyIntent, label: 'Family', desc: 'Comfortable for everyone', icon: Users },
-  { id: 'budget' as JourneyIntent, label: 'Budget', desc: 'Lowest cost journey', icon: Wallet },
-  { id: 'custom' as any, label: 'Custom', desc: 'Set your own priorities', icon: SlidersHorizontal },
+  { id: 'general' as JourneyIntent, label: 'General', icon: Compass, color: 'text-blue-600 bg-blue-50' },
+  { id: 'interview' as JourneyIntent, label: 'Interview', icon: Briefcase, color: 'text-indigo-600 bg-indigo-50' },
+  { id: 'exam' as JourneyIntent, label: 'Exam', icon: GraduationCap, color: 'text-purple-600 bg-purple-50' },
+  { id: 'flight' as JourneyIntent, label: 'Flight', icon: Plane, color: 'text-sky-600 bg-sky-50' },
+  { id: 'emergency' as JourneyIntent, label: 'Emergency', icon: AlertTriangle, color: 'text-rose-600 bg-rose-50' },
+  { id: 'family' as JourneyIntent, label: 'Family', icon: Users, color: 'text-pink-600 bg-pink-50' },
+  { id: 'budget' as JourneyIntent, label: 'Budget', icon: Wallet, color: 'text-emerald-600 bg-emerald-50' },
+  { id: 'custom' as any, label: 'Custom', icon: SlidersHorizontal, color: 'text-slate-600 bg-slate-100' },
+];
+
+const WEIGHT_ROWS = [
+  { key: 'reliability' as keyof PriorityWeights, label: 'Reliability', defaultVal: 0.3, icon: Shield, accent: 'accent-blue-600' },
+  { key: 'time' as keyof PriorityWeights, label: 'Speed', defaultVal: 0.3, icon: Clock, accent: 'accent-indigo-600' },
+  { key: 'cost' as keyof PriorityWeights, label: 'Low cost', defaultVal: 0.2, icon: IndianRupee, accent: 'accent-emerald-600' },
+  { key: 'walking' as keyof PriorityWeights, label: 'Less walking', defaultVal: 0.1, icon: Footprints, accent: 'accent-orange-500' },
+  { key: 'comfort' as keyof PriorityWeights, label: 'Fewer transfers', defaultVal: 0.1, icon: Shuffle, accent: 'accent-purple-600' },
 ];
 
 export const PlanYourJourney: React.FC<PlanYourJourneyProps> = ({
@@ -55,8 +62,7 @@ export const PlanYourJourney: React.FC<PlanYourJourneyProps> = ({
   onOptimize,
   isLoading,
 }) => {
-  const [activeTab, setActiveTab] = useState<'plan' | 'results' | 'about'>('plan');
-  const [showPriorities, setShowPriorities] = useState(true);
+  const [showPriorities, setShowPriorities] = useState(false);
 
   const handleSwap = () => {
     onChangeRequest({
@@ -69,459 +75,262 @@ export const PlanYourJourney: React.FC<PlanYourJourneyProps> = ({
   const handleSlider = (key: keyof PriorityWeights, val: number) => {
     onChangeRequest({
       ...request,
-      weights: {
-        ...request.weights,
-        [key]: val / 100,
-      },
+      weights: { ...request.weights, [key]: val / 100 },
     });
   };
 
   const handleResetPriorities = () => {
     onChangeRequest({
       ...request,
-      weights: {
-        reliability: 0.30,
-        time: 0.30,
-        cost: 0.20,
-        walking: 0.10,
-        comfort: 0.10,
-      },
+      weights: { reliability: 0.30, time: 0.30, cost: 0.20, walking: 0.10, comfort: 0.10 },
     });
   };
 
   const handleVoiceApply = (parsed: Partial<JourneyRequest>, autoOptimize?: boolean) => {
-    const updated = {
-      ...request,
-      ...parsed,
-    };
+    const updated = { ...request, ...parsed };
     onChangeRequest(updated);
     if (autoOptimize) {
-      setTimeout(() => onOptimize(), 100);
+      onOptimize(updated);
     }
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-5 space-y-4">
-      {/* 1. Top Panel Sub-Tabs */}
-      <div className="flex items-center gap-1 border-b border-slate-100 pb-2">
-        <button
-          type="button"
-          onClick={() => setActiveTab('plan')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-            activeTab === 'plan'
-              ? 'text-[#FF7A1A] bg-orange-50/80 border border-orange-200/60'
-              : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <Compass className="w-3.5 h-3.5" />
-          <span>Plan Journey</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('results')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-            activeTab === 'results'
-              ? 'text-[#FF7A1A] bg-orange-50/80 border border-orange-200/60'
-              : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <Layers className="w-3.5 h-3.5" />
-          <span>Results</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('about')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-            activeTab === 'about'
-              ? 'text-[#FF7A1A] bg-orange-50/80 border border-orange-200/60'
-              : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <Info className="w-3.5 h-3.5" />
-          <span>About</span>
-        </button>
-      </div>
-
+    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden">
       {/* Header */}
-      <div>
-        <h2 className="font-heading text-xl font-black text-slate-900 tracking-tight">
-          Where do you want to go?
-        </h2>
-        <p className="text-xs text-slate-500 mt-0.5">
-          Find the best journey based on time, budget and real-time conditions.
+      <div className="px-5 pt-5 pb-4 border-b border-slate-100">
+        <h2 className="font-heading text-lg font-black text-slate-900 tracking-tight">Plan your journey</h2>
+        <p className="text-[11px] text-slate-500 mt-0.5">
+          Find the best way to reach based on your time, budget and real-time conditions.
         </p>
       </div>
 
-      {/* 2. Interactive Voice Input Section */}
-      <VoiceInput onApplyJourney={handleVoiceApply} />
+      <div className="px-5 py-4 space-y-4">
+        {/* Voice Input */}
+        <VoiceInput onApplyJourney={handleVoiceApply} />
 
-      {/* 3. Origin & Destination Inputs Box */}
-      <div className="space-y-1.5 relative">
-        {/* From Input */}
-        <div className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 transition-all focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500">
-          <div className="flex items-center gap-2.5 flex-1 min-w-0">
-            <div className="w-6 h-6 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-              <MapPin className="w-4 h-4 fill-emerald-500 text-white" />
+        {/* Origin & Destination */}
+        <div className="space-y-1 relative">
+          {/* From */}
+          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 transition-all focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-400">
+            <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+              <MapPin className="w-3 h-3 fill-emerald-500 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <span className="text-[9px] uppercase font-bold text-slate-400 block leading-tight">From</span>
+              <span className="text-[9px] uppercase font-bold text-slate-400 block leading-tight tracking-wide">From</span>
               <input
                 type="text"
                 value={request.origin}
                 onChange={(e) => onChangeRequest({ ...request, origin: e.target.value })}
-                placeholder="Origin address or station"
-                className="w-full text-xs font-bold text-slate-900 bg-transparent focus:outline-none truncate"
+                placeholder="Origin"
+                className="w-full text-xs font-semibold text-slate-900 bg-transparent focus:outline-none truncate"
               />
             </div>
+            {request.origin && (
+              <button onClick={() => onChangeRequest({ ...request, origin: '' })} className="p-0.5 text-slate-300 hover:text-slate-500 rounded shrink-0">
+                <X className="w-3 h-3" />
+              </button>
+            )}
           </div>
-          {request.origin && (
+
+          {/* Swap */}
+          <div className="flex justify-center -my-1 relative z-10">
             <button
-              onClick={() => onChangeRequest({ ...request, origin: '' })}
-              className="p-1 text-slate-400 hover:text-slate-600 rounded"
-              title="Clear origin"
+              type="button"
+              onClick={handleSwap}
+              className="w-6 h-6 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-900 flex items-center justify-center shadow-sm transition-all hover:scale-105 active:scale-95"
             >
-              <X className="w-3.5 h-3.5" />
+              <ArrowUpDown className="w-3 h-3" />
             </button>
-          )}
-        </div>
+          </div>
 
-        {/* Swap Button */}
-        <div className="flex justify-center -my-2 relative z-10">
-          <button
-            type="button"
-            onClick={handleSwap}
-            aria-label="Swap locations"
-            className="w-6 h-6 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 flex items-center justify-center shadow-xs transition-all hover:scale-105 active:scale-95"
-            title="Swap Origin and Destination"
-          >
-            <ArrowUpDown className="w-3 h-3" />
-          </button>
-        </div>
-
-        {/* To Input */}
-        <div className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 transition-all focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500">
-          <div className="flex items-center gap-2.5 flex-1 min-w-0">
-            <div className="w-6 h-6 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
-              <MapPin className="w-4 h-4 fill-rose-500 text-white" />
+          {/* To */}
+          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 transition-all focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-400">
+            <div className="w-5 h-5 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+              <MapPin className="w-3 h-3 fill-rose-500 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <span className="text-[9px] uppercase font-bold text-slate-400 block leading-tight">To</span>
+              <span className="text-[9px] uppercase font-bold text-slate-400 block leading-tight tracking-wide">To</span>
               <input
                 type="text"
                 value={request.destination}
                 onChange={(e) => onChangeRequest({ ...request, destination: e.target.value })}
-                placeholder="Destination address or office"
-                className="w-full text-xs font-bold text-slate-900 bg-transparent focus:outline-none truncate"
+                placeholder="Destination"
+                className="w-full text-xs font-semibold text-slate-900 bg-transparent focus:outline-none truncate"
+              />
+            </div>
+            {request.destination && (
+              <button onClick={() => onChangeRequest({ ...request, destination: '' })} className="p-0.5 text-slate-300 hover:text-slate-500 rounded shrink-0">
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* 4 Constraint Pills — 2x2 grid */}
+        <div className="grid grid-cols-2 gap-2">
+          {/* Arrive by */}
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/60 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-400 transition-all">
+            <Clock className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <span className="text-[9px] font-bold uppercase text-slate-400 leading-tight block tracking-wide">Arrive by</span>
+              <input
+                type="text"
+                value={request.arrival_deadline || '10:10 AM'}
+                onChange={(e) => onChangeRequest({ ...request, arrival_deadline: e.target.value })}
+                className="text-xs font-bold text-slate-900 bg-transparent focus:outline-none w-full"
+                placeholder="10:10 AM"
               />
             </div>
           </div>
-          {request.destination && (
+
+          {/* Max budget */}
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/60 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-400 transition-all">
+            <IndianRupee className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <span className="text-[9px] font-bold uppercase text-slate-400 leading-tight block tracking-wide">Budget</span>
+              <div className="flex items-center">
+                <span className="text-xs text-slate-400 font-bold mr-0.5">₹</span>
+                <input
+                  type="number"
+                  min="100" max="10000" step="50"
+                  value={request.max_budget}
+                  onChange={(e) => onChangeRequest({ ...request, max_budget: Math.max(0, parseFloat(e.target.value) || 0) })}
+                  className="text-xs font-bold text-slate-900 bg-transparent focus:outline-none w-full"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Max walking */}
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/60 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-400 transition-all">
+            <Footprints className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <span className="text-[9px] font-bold uppercase text-slate-400 leading-tight block tracking-wide">Walking</span>
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  min="100" max="5000" step="100"
+                  value={request.max_walking_distance_meters}
+                  onChange={(e) => onChangeRequest({ ...request, max_walking_distance_meters: Math.max(100, parseInt(e.target.value) || 100) })}
+                  className="text-xs font-bold text-slate-900 bg-transparent focus:outline-none w-full"
+                />
+                <span className="text-[10px] font-semibold text-slate-400 shrink-0">
+                  {request.max_walking_distance_meters >= 1000 ? `${(request.max_walking_distance_meters / 1000).toFixed(1)}km` : 'm'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Transfers */}
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/60 transition-all">
+            <Shuffle className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <span className="text-[9px] font-bold uppercase text-slate-400 leading-tight block tracking-wide">Transfers</span>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-900">{request.max_transfers} max</span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => onChangeRequest({ ...request, max_transfers: Math.max(0, request.max_transfers - 1) })}
+                    className="w-4 h-4 rounded bg-slate-200 hover:bg-slate-300 text-slate-700 flex items-center justify-center text-[11px] font-black transition-colors"
+                  >-</button>
+                  <button
+                    type="button"
+                    onClick={() => onChangeRequest({ ...request, max_transfers: request.max_transfers + 1 })}
+                    className="w-4 h-4 rounded bg-slate-200 hover:bg-slate-300 text-slate-700 flex items-center justify-center text-[11px] font-black transition-colors"
+                  >+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Travel Purpose — compact icon row */}
+        <div className="space-y-2">
+          <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wide">Travel purpose</span>
+          <div className="grid grid-cols-4 gap-1.5">
+            {INTENT_CARDS.map((item) => {
+              const isSelected = request.intent === item.id;
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => onChangeRequest({ ...request, intent: item.id as JourneyIntent })}
+                  title={item.label}
+                  className={`flex flex-col items-center justify-center gap-1 py-2.5 px-1 rounded-xl border text-center transition-all ${
+                    isSelected
+                      ? 'border-blue-400 bg-blue-50 shadow-sm ring-1 ring-blue-400/30'
+                      : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className={`w-6 h-6 rounded-lg flex items-center justify-center ${isSelected ? item.color : 'bg-slate-100 text-slate-500'}`}>
+                    <Icon className="w-3.5 h-3.5" />
+                  </div>
+                  <span className={`text-[10px] font-bold leading-tight ${isSelected ? 'text-blue-700' : 'text-slate-600'}`}>
+                    {item.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Priority Weights — collapsed by default */}
+        <div>
+          <div className="flex items-center justify-between">
             <button
-              onClick={() => onChangeRequest({ ...request, destination: '' })}
-              className="p-1 text-slate-400 hover:text-slate-600 rounded"
-              title="Clear destination"
+              type="button"
+              onClick={() => setShowPriorities(!showPriorities)}
+              className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 hover:text-slate-800 uppercase tracking-wide transition-colors"
             >
-              <X className="w-3.5 h-3.5" />
+              {showPriorities ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              Priority weights
             </button>
+            {showPriorities && (
+              <button
+                type="button"
+                onClick={handleResetPriorities}
+                className="text-[11px] font-semibold text-blue-500 hover:text-blue-700 transition-colors"
+              >
+                Reset
+              </button>
+            )}
+          </div>
+
+          {showPriorities && (
+            <div className="mt-2.5 space-y-2.5 bg-slate-50/60 p-3 rounded-xl border border-slate-200/70">
+              {WEIGHT_ROWS.map(({ key, label, defaultVal, icon: Icon, accent }) => (
+                <div key={key} className="flex items-center gap-2 text-xs">
+                  <Icon className="w-3 h-3 text-slate-400 shrink-0" />
+                  <span className="text-slate-600 font-medium w-24 shrink-0 truncate">{label}</span>
+                  <input
+                    type="range"
+                    min="0" max="100" step="5"
+                    value={Math.round((request.weights[key] ?? defaultVal) * 100)}
+                    onChange={(e) => handleSlider(key, Number(e.target.value))}
+                    className={`flex-1 h-1.5 bg-slate-200 rounded-full appearance-none cursor-pointer ${accent}`}
+                  />
+                  <span className="w-7 text-right font-bold text-slate-700 text-[11px] shrink-0">
+                    {Math.round((request.weights[key] ?? defaultVal) * 100)}%
+                  </span>
+                </div>
+              ))}
+            </div>
           )}
         </div>
-      </div>
 
-      {/* 4. FOUR FULLY EDITABLE CONSTRAINT CARDS */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        {/* Card 1: Arrive by (Fully Editable) */}
-        <div className="p-2 rounded-xl border border-slate-200 bg-white space-y-0.5 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
-          <div className="flex items-center gap-1 text-slate-400 text-[10px] font-semibold">
-            <Clock className="w-3 h-3 text-blue-500" />
-            <span>Arrive by</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <input
-              type="text"
-              value={request.arrival_deadline || '10:10 AM'}
-              onChange={(e) => onChangeRequest({ ...request, arrival_deadline: e.target.value })}
-              className="text-xs font-black text-slate-900 w-full bg-transparent focus:outline-none"
-              placeholder="e.g. 10:10 AM"
-            />
-            <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
-          </div>
-        </div>
-
-        {/* Card 2: Max budget (Fully Editable Number Input) */}
-        <div className="p-2 rounded-xl border border-slate-200 bg-white space-y-0.5 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
-          <div className="flex items-center gap-1 text-slate-400 text-[10px] font-semibold">
-            <IndianRupee className="w-3 h-3 text-emerald-500" />
-            <span>Max budget</span>
-          </div>
-          <div className="flex items-center">
-            <span className="text-xs font-black text-slate-400 mr-0.5">₹</span>
-            <input
-              type="number"
-              min="100"
-              max="10000"
-              step="50"
-              value={request.max_budget}
-              onChange={(e) =>
-                onChangeRequest({ ...request, max_budget: Math.max(0, parseFloat(e.target.value) || 0) })
-              }
-              className="text-xs font-black text-slate-900 w-full bg-transparent focus:outline-none"
-              placeholder="1500"
-            />
-          </div>
-        </div>
-
-        {/* Card 3: Max walking (Fully Editable Number in meters/km) */}
-        <div className="p-2 rounded-xl border border-slate-200 bg-white space-y-0.5 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
-          <div className="flex items-center gap-1 text-slate-400 text-[10px] font-semibold">
-            <Footprints className="w-3 h-3 text-orange-500" />
-            <span>Max walking</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <input
-              type="number"
-              min="100"
-              max="5000"
-              step="100"
-              value={request.max_walking_distance_meters}
-              onChange={(e) =>
-                onChangeRequest({
-                  ...request,
-                  max_walking_distance_meters: Math.max(100, parseInt(e.target.value) || 100),
-                })
-              }
-              className="text-xs font-black text-slate-900 w-full bg-transparent focus:outline-none"
-              placeholder="1000"
-            />
-            <span className="text-[10px] font-bold text-slate-400 ml-0.5 shrink-0">
-              {request.max_walking_distance_meters >= 1000
-                ? `${(request.max_walking_distance_meters / 1000).toFixed(1)}km`
-                : 'm'}
-            </span>
-          </div>
-        </div>
-
-        {/* Card 4: Max transfers (Fully Editable with Stepper Controls) */}
-        <div className="p-2 rounded-xl border border-slate-200 bg-white space-y-0.5 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
-          <div className="flex items-center gap-1 text-slate-400 text-[10px] font-semibold">
-            <Shuffle className="w-3 h-3 text-purple-500" />
-            <span>Max transfers</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <input
-              type="number"
-              min="0"
-              max="5"
-              value={request.max_transfers}
-              onChange={(e) =>
-                onChangeRequest({
-                  ...request,
-                  max_transfers: Math.max(0, parseInt(e.target.value) || 0),
-                })
-              }
-              className="text-xs font-black text-slate-900 w-8 bg-transparent focus:outline-none"
-              placeholder="2"
-            />
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() =>
-                  onChangeRequest({ ...request, max_transfers: Math.max(0, request.max_transfers - 1) })
-                }
-                className="w-4 h-4 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center text-[10px] font-bold"
-                title="Decrease transfers"
-              >
-                -
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  onChangeRequest({ ...request, max_transfers: request.max_transfers + 1 })
-                }
-                className="w-4 h-4 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center text-[10px] font-bold"
-                title="Increase transfers"
-              >
-                +
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 5. Travel Purpose (Default is GENERAL: Balanced time, cost & comfort) */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-1 text-xs font-bold text-slate-800">
-          <span>Travel purpose</span>
-          <Info className="w-3 h-3 text-slate-400" />
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {INTENT_CARDS.map((item) => {
-            const isSelected =
-              request.intent === item.id || (item.id === 'custom' && request.intent === ('custom' as any));
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => onChangeRequest({ ...request, intent: item.id as JourneyIntent })}
-                className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all min-h-[72px] ${
-                  isSelected
-                    ? 'border-blue-500 bg-blue-50/70 text-blue-900 ring-1 ring-blue-500/30 shadow-2xs'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50/60'
-                }`}
-              >
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Icon className={`w-3.5 h-3.5 ${isSelected ? 'text-blue-600' : 'text-slate-500'}`} />
-                  <span className="text-xs font-bold leading-tight">{item.label}</span>
-                </div>
-                <span className="text-[10px] text-slate-500 leading-tight block">
-                  {item.desc}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 6. Journey priorities (optional) with Reset Button */}
-      <div className="space-y-2.5 pt-1">
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => setShowPriorities(!showPriorities)}
-            className="flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-slate-900"
-          >
-            {showPriorities ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-            <span>Journey priorities (optional)</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleResetPriorities}
-            className="text-[11px] font-semibold text-blue-600 hover:text-blue-800"
-          >
-            Reset
-          </button>
-        </div>
-
-        {showPriorities && (
-          <div className="space-y-2 bg-slate-50/70 p-3 rounded-xl border border-slate-200/70 text-xs">
-            {/* Reliability */}
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 min-w-[150px] text-slate-700 font-medium">
-                <Shield className="w-3.5 h-3.5 text-slate-400" />
-                <span>Reliability <span className="text-[10px] text-slate-400">(Avoid delays)</span></span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                step="5"
-                value={Math.round((request.weights.reliability || 0.3) * 100)}
-                onChange={(e) => handleSlider('reliability', Number(e.target.value))}
-                className="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-              />
-              <span className="w-7 text-right font-bold text-slate-800 text-[11px]">
-                {Math.round((request.weights.reliability || 0.3) * 100)}%
-              </span>
-            </div>
-
-            {/* Time */}
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 min-w-[150px] text-slate-700 font-medium">
-                <Clock className="w-3.5 h-3.5 text-slate-400" />
-                <span>Time <span className="text-[10px] text-slate-400">(Faster routes)</span></span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                step="5"
-                value={Math.round((request.weights.time || 0.3) * 100)}
-                onChange={(e) => handleSlider('time', Number(e.target.value))}
-                className="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-              />
-              <span className="w-7 text-right font-bold text-slate-800 text-[11px]">
-                {Math.round((request.weights.time || 0.3) * 100)}%
-              </span>
-            </div>
-
-            {/* Cost */}
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 min-w-[150px] text-slate-700 font-medium">
-                <IndianRupee className="w-3.5 h-3.5 text-slate-400" />
-                <span>Cost <span className="text-[10px] text-slate-400">(Lower cost)</span></span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                step="5"
-                value={Math.round((request.weights.cost || 0.2) * 100)}
-                onChange={(e) => handleSlider('cost', Number(e.target.value))}
-                className="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-              />
-              <span className="w-7 text-right font-bold text-slate-800 text-[11px]">
-                {Math.round((request.weights.cost || 0.2) * 100)}%
-              </span>
-            </div>
-
-            {/* Less walking */}
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 min-w-[150px] text-slate-700 font-medium">
-                <Footprints className="w-3.5 h-3.5 text-slate-400" />
-                <span>Less walking</span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                step="5"
-                value={Math.round((request.weights.walking || 0.1) * 100)}
-                onChange={(e) => handleSlider('walking', Number(e.target.value))}
-                className="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-              />
-              <span className="w-7 text-right font-bold text-slate-800 text-[11px]">
-                {Math.round((request.weights.walking || 0.1) * 100)}%
-              </span>
-            </div>
-
-            {/* Fewer transfers */}
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 min-w-[150px] text-slate-700 font-medium">
-                <Shuffle className="w-3.5 h-3.5 text-slate-400" />
-                <span>Fewer transfers</span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                step="5"
-                value={Math.round((request.weights.comfort || 0.1) * 100)}
-                onChange={(e) => handleSlider('comfort', Number(e.target.value))}
-                className="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-              />
-              <span className="w-7 text-right font-bold text-slate-800 text-[11px]">
-                {Math.round((request.weights.comfort || 0.1) * 100)}%
-              </span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* 7. Big Orange Optimize Button */}
-      <div className="space-y-2 pt-1">
+        {/* Optimize Button */}
         <button
           type="button"
-          onClick={onOptimize}
+          onClick={() => onOptimize()}
           disabled={isLoading}
-          className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-[#FF7A1A] to-[#FF5500] hover:from-[#FF8A33] hover:to-[#FF6600] text-white font-heading font-black text-sm shadow-md shadow-orange-500/25 transition-all hover:shadow-lg hover:shadow-orange-500/35 active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-60"
+          className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#FF7A1A] to-[#FF5500] hover:from-[#FF8A33] hover:to-[#FF6600] text-white font-heading font-black text-sm shadow-md shadow-orange-500/30 transition-all hover:shadow-lg hover:shadow-orange-500/40 active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-60"
         >
           {isLoading ? (
             <>
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              <span>Evaluating Constraints...</span>
+              <span>Evaluating...</span>
             </>
           ) : (
             <>
@@ -532,9 +341,9 @@ export const PlanYourJourney: React.FC<PlanYourJourneyProps> = ({
           )}
         </button>
 
-        <p className="text-[11px] text-center text-slate-400 flex items-center justify-center gap-1">
-          <Info className="w-3 h-3 text-slate-400" />
-          <span>We'll compare journey options using maps, search and live intelligence.</span>
+        <p className="text-[10px] text-center text-slate-400 flex items-center justify-center gap-1">
+          <Info className="w-3 h-3" />
+          Analyses routes using live maps, search &amp; news data.
         </p>
       </div>
     </div>

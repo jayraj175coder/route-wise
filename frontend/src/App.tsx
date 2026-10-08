@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   JourneyRequest,
   OptimizationResult,
@@ -23,7 +23,6 @@ import { DisclaimerFooter } from './components/DisclaimerFooter';
 import { SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
 
 export const App: React.FC = () => {
-  // Default Travel Purpose is GENERAL: Balanced time, cost & comfort
   const [request, setRequest] = useState<JourneyRequest>({
     origin: 'Dadar, Mumbai',
     destination: 'Hinjawadi Phase 1, Pune',
@@ -49,19 +48,27 @@ export const App: React.FC = () => {
   const [reoptimizeData, setReoptimizeData] = useState<ReoptimizeResult | null>(null);
   const [hasDisruption, setHasDisruption] = useState<boolean>(false);
   const [apiConnected] = useState<boolean>(true);
-  const [isPreferencesOpen, setIsPreferencesOpen] = useState<boolean>(true);
+  const [isPreferencesOpen, setIsPreferencesOpen] = useState<boolean>(false);
   const [showAdvancedTools, setShowAdvancedTools] = useState<boolean>(false);
 
   const resultsRef = useRef<HTMLDivElement>(null);
+  // Always-fresh ref so closures never see stale request
+  const requestRef = useRef(request);
+  useEffect(() => { requestRef.current = request; }, [request]);
 
-  // Initial optimization on mount
+  // Initial optimization on mount — runs once
+  const didMountRef = useRef(false);
   useEffect(() => {
-    handleRunOptimize();
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      handleRunOptimize();
+    }
   }, []);
 
-  const handleRunOptimize = async (customReq?: JourneyRequest) => {
+  const handleRunOptimize = useCallback(async (customReq?: JourneyRequest) => {
+    // Always use the explicitly passed req, or fall back to the ref (never stale)
+    const reqToRun = customReq ?? requestRef.current;
     setIsLoading(true);
-    const reqToRun = customReq || request;
     try {
       const res = await optimizeJourney(reqToRun);
       setOptimizationResult(res);
@@ -73,7 +80,7 @@ export const App: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   const handleTriggerReoptimize = () => {
     setIsPipelineOpen(true);
@@ -133,7 +140,6 @@ export const App: React.FC = () => {
   };
 
   const handleApplyPreferencesToPlanner = (prefs: any) => {
-    // Dynamically adjust weights/limits based on traveler style
     let updatedWeights = { ...request.weights };
     if (prefs.travel_style === 'reliability') {
       updatedWeights = { reliability: 0.50, time: 0.20, cost: 0.15, walking: 0.10, comfort: 0.05 };
@@ -157,8 +163,8 @@ export const App: React.FC = () => {
   const currentRoute = selectedRoute || optimizationResult?.recommended_route;
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-800 flex flex-col font-sans selection:bg-[#FF7A1A]/20 selection:text-slate-900">
-      {/* 1. Header Navigation Bar */}
+    <div className="min-h-screen bg-[#F0F4F8] text-slate-800 flex flex-col font-sans selection:bg-[#FF7A1A]/20 selection:text-slate-900">
+      {/* Navbar */}
       <Navbar
         apiConnected={apiConnected}
         onRefresh={() => handleRunOptimize()}
@@ -166,9 +172,10 @@ export const App: React.FC = () => {
         isPreferencesOpen={isPreferencesOpen}
       />
 
-      {/* Main 3-Column Responsive Dashboard Layout */}
-      <main className="flex-1 max-w-[1720px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-6">
-        {/* Dynamic Re-optimization Notification */}
+      {/* Main Layout */}
+      <main className="flex-1 flex flex-col w-full max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-5 gap-4">
+
+        {/* Re-optimization Banner */}
         {reoptimizeData && (
           <ReoptimizeBanner
             previousRoute={reoptimizeData.previous_route}
@@ -179,27 +186,21 @@ export const App: React.FC = () => {
           />
         )}
 
-        {/* 3-Column Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-          {/* Column 1: Journey Planner */}
-          <div className="lg:col-span-4 xl:col-span-3">
+        {/* Two-Panel Split */}
+        <div className="flex gap-5 items-start flex-1">
+
+          {/* LEFT PANEL — Input Sidebar */}
+          <aside className="w-[320px] xl:w-[340px] shrink-0 sticky top-[72px]">
             <PlanYourJourney
               request={request}
               onChangeRequest={setRequest}
-              onOptimize={() => handleRunOptimize()}
+              onOptimize={(customReq) => handleRunOptimize(customReq)}
               isLoading={isLoading}
             />
-          </div>
+          </aside>
 
-          {/* Column 2: Center Main Dashboard (Map + Best Journey + Analytics) */}
-          <div
-            className={
-              isPreferencesOpen
-                ? 'lg:col-span-8 xl:col-span-6'
-                : 'lg:col-span-8 xl:col-span-9'
-            }
-            ref={resultsRef}
-          >
+          {/* RIGHT PANEL — Results */}
+          <div className="flex-1 min-w-0 flex flex-col gap-4" ref={resultsRef}>
             {currentRoute && optimizationResult ? (
               <CenterDashboard
                 request={request}
@@ -210,68 +211,73 @@ export const App: React.FC = () => {
                 onOpenScoreModal={() => setIsEvidenceOpen(true)}
               />
             ) : (
-              /* Loading Skeleton */
-              <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-4 shadow-sm animate-pulse">
+              <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center space-y-4 shadow-sm animate-pulse">
                 <div className="w-12 h-12 bg-slate-200 rounded-2xl mx-auto" />
-                <div className="h-6 bg-slate-200 rounded w-1/3 mx-auto" />
+                <div className="h-5 bg-slate-200 rounded w-1/3 mx-auto" />
                 <div className="h-4 bg-slate-100 rounded w-1/2 mx-auto" />
-                <div className="h-64 bg-slate-100 rounded-xl mt-6" />
+                <div className="h-72 bg-slate-100 rounded-xl mt-6" />
               </div>
             )}
+
+            {/* Advanced Decision Tools — Collapsible */}
+            <div className="border-t border-slate-200/60 pt-1">
+              <button
+                onClick={() => setShowAdvancedTools(!showAdvancedTools)}
+                className="flex items-center justify-between w-full px-4 py-3 rounded-xl bg-white border border-slate-200/90 shadow-sm hover:bg-slate-50 transition-all text-left"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <SlidersHorizontal className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900">
+                      Advanced: What-If Stress Testing & Sensitivity Radar
+                    </h4>
+                    <p className="text-[11px] text-slate-500">
+                      Simulate rain delays, road blockages, and test decision stability
+                    </p>
+                  </div>
+                </div>
+                {showAdvancedTools ? (
+                  <ChevronUp className="w-4 h-4 text-slate-400" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-slate-400" />
+                )}
+              </button>
+
+              {showAdvancedTools && currentRoute && (
+                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                  <DecisionSensitivity route={currentRoute} />
+                  <WhatIfSimulator
+                    request={request}
+                    onSimulate={handleWhatIfSimulation}
+                  />
+                </div>
+              )}
+            </div>
           </div>
-
-          {/* Column 3: Traveler Preferences Sidebar */}
-          {isPreferencesOpen && (
-            <div className="lg:col-span-12 xl:col-span-3">
-              <TravelerPreferencesSidebar
-                isOpen={isPreferencesOpen}
-                onClose={() => setIsPreferencesOpen(false)}
-                onSelectRecentSearch={handleSelectRecentSearch}
-                onApplyPreferencesToPlanner={handleApplyPreferencesToPlanner}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Advanced Decision Simulator Toggle Drawer */}
-        <div className="pt-2 border-t border-slate-200/80">
-          <button
-            onClick={() => setShowAdvancedTools(!showAdvancedTools)}
-            className="flex items-center justify-between w-full p-3.5 rounded-xl bg-white border border-slate-200/90 shadow-2xs hover:bg-slate-50 transition-all text-left"
-          >
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                <SlidersHorizontal className="w-4 h-4" />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-slate-900">
-                  Advanced Decision Engine: What-If Stress Testing & Sensitivity Radar
-                </h4>
-                <p className="text-[11px] text-slate-500">
-                  Simulate rain delays, road blockages, and test decision stability boundaries
-                </p>
-              </div>
-            </div>
-            {showAdvancedTools ? (
-              <ChevronUp className="w-4 h-4 text-slate-400" />
-            ) : (
-              <ChevronDown className="w-4 h-4 text-slate-400" />
-            )}
-          </button>
-
-          {showAdvancedTools && currentRoute && (
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-5 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-              <DecisionSensitivity route={currentRoute} />
-              <WhatIfSimulator
-                request={request}
-                onSimulate={handleWhatIfSimulation}
-              />
-            </div>
-          )}
         </div>
       </main>
 
-      {/* Disruption Evidence Verification Modal */}
+      {/* Traveler Preferences Sidebar — Slide-over */}
+      {isPreferencesOpen && (
+        <div className="fixed inset-0 z-40 flex justify-end">
+          <div
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            onClick={() => setIsPreferencesOpen(false)}
+          />
+          <div className="relative z-50 w-full max-w-sm bg-white shadow-2xl h-full overflow-y-auto">
+            <TravelerPreferencesSidebar
+              isOpen={isPreferencesOpen}
+              onClose={() => setIsPreferencesOpen(false)}
+              onSelectRecentSearch={handleSelectRecentSearch}
+              onApplyPreferencesToPlanner={handleApplyPreferencesToPlanner}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Disruption Evidence Modal */}
       {currentRoute && (
         <EvidenceModal
           isOpen={isEvidenceOpen}
@@ -281,13 +287,12 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* Re-Optimization 6-Stage Pipeline Modal */}
+      {/* Re-Optimization Pipeline Modal */}
       <ReoptimizePipelineModal
         isOpen={isPipelineOpen}
         onComplete={handlePipelineCompleted}
       />
 
-      {/* Minimal Clean Footer */}
       <DisclaimerFooter />
     </div>
   );
