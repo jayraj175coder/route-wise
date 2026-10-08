@@ -506,14 +506,36 @@ export async function parseVoiceInput(transcript: string): Promise<any> {
     if (!res.ok) throw new Error('Voice parse API failed');
     return await res.json();
   } catch (err) {
+    const text = (transcript || '').toLowerCase();
+    let orig = 'Rabale, New Mumbai';
+    let dest = 'Thane';
+
+    if (text.includes('dadar') && (text.includes('pune') || text.includes('hinjawadi'))) {
+      orig = 'Dadar, Mumbai';
+      dest = 'Hinjawadi Phase 1, Pune';
+    } else {
+      const match = text.match(/(?:from\s+)?([a-z0-9\s]+?)\s+(?:to|se|te)\s+([a-z0-9\s]+)/i);
+      if (match) {
+        orig = match[1].replace(/^(i want to go|i need to go|go|please take me)\s+/i, '').trim();
+        dest = match[2].replace(/\s+(by|at|before|tomorrow).*$/i, '').trim();
+        orig = orig.charAt(0).toUpperCase() + orig.slice(1);
+        dest = dest.charAt(0).toUpperCase() + dest.slice(1);
+      } else if (text.includes('thane')) {
+        dest = 'Thane';
+      }
+    }
+
+    const timeMatch = text.match(/(?:by|at|before)\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i);
+    const deadline = timeMatch ? timeMatch[1].toUpperCase() : '10:10 AM';
+
     return {
-      origin: 'Dadar, Mumbai',
-      destination: 'Hinjawadi Phase 1, Pune',
-      arrival_deadline: '10:30 AM',
-      max_budget: 1500,
+      origin: orig,
+      destination: dest,
+      arrival_deadline: deadline,
+      max_budget: text.includes('cheap') ? 50 : 100,
       max_walking_distance_meters: 1000,
-      max_transfers: 2,
-      intent: 'interview',
+      max_transfers: 3,
+      intent: text.includes('cheap') ? 'budget' : text.includes('interview') ? 'interview' : 'general',
       intent_detected: true,
       raw_transcript: transcript,
     };
