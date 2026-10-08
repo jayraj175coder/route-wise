@@ -117,6 +117,11 @@ export const App: React.FC = () => {
       setIsEvidenceOpen(true);
     } else if (tab === 'score') {
       setIsScoreModalOpen(true);
+    } else if (tab === 'map') {
+      const mapEl = document.getElementById('map-panel-container');
+      if (mapEl) {
+        mapEl.scrollIntoView({ behavior: 'smooth' });
+      }
     }
   };
 

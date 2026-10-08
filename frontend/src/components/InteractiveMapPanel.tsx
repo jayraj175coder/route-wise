@@ -12,6 +12,12 @@ import {
   IndianRupee,
   Route as RouteIcon,
   Shuffle,
+  Layers,
+  Maximize2,
+  ShieldCheck,
+  CheckCircle2,
+  Sun,
+  Footprints,
 } from 'lucide-react';
 
 interface InteractiveMapPanelProps {
@@ -135,7 +141,7 @@ export const InteractiveMapPanel: React.FC<InteractiveMapPanelProps> = ({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
-  const [mapMode, setMapMode] = useState<MapMode>('satellite');
+  const [mapMode, setMapMode] = useState<MapMode>('map');
   const [activeBounds, setActiveBounds] = useState<L.LatLngBounds | null>(null);
 
   // Initialize Leaflet map
@@ -150,13 +156,13 @@ export const InteractiveMapPanel: React.FC<InteractiveMapPanelProps> = ({
         attributionControl: false,
       });
 
-      // Default satellite imagery
-      const satLayer = L.tileLayer(
-        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-        { maxZoom: 18 }
+      // Default high-contrast Voyager map
+      const initialLayer = L.tileLayer(
+        'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+        { maxZoom: 19 }
       );
-      satLayer.addTo(map);
-      tileLayerRef.current = satLayer;
+      initialLayer.addTo(map);
+      tileLayerRef.current = initialLayer;
 
       mapInstanceRef.current = map;
     }
@@ -179,12 +185,12 @@ export const InteractiveMapPanel: React.FC<InteractiveMapPanelProps> = ({
       );
     } else if (mapMode === 'traffic') {
       newLayer = L.tileLayer(
-        'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+        'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
         { maxZoom: 19 }
       );
     } else {
       newLayer = L.tileLayer(
-        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
         { maxZoom: 19 }
       );
     }
@@ -423,131 +429,186 @@ export const InteractiveMapPanel: React.FC<InteractiveMapPanelProps> = ({
   };
 
   const stagesCount = selectedRoute?.segments?.length || 3;
+  const totalWalkMeters = Math.round(
+    selectedRoute?.segments
+      ?.filter((s) => s.mode === 'walking')
+      ?.reduce((acc, s) => acc + (s.distance_meters || 0), 0) || 150
+  );
 
   return (
-    <div className="bg-[#0B1528] dark:bg-[#070E1A] rounded-3xl overflow-hidden border border-slate-200/90 dark:border-slate-800 shadow-md flex flex-col relative h-[680px] transition-colors duration-200">
-      {/* Top Floating Controls Bar */}
-      <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
-        {/* Layer Mode Toggle Pills */}
-        <div className="bg-white/95 dark:bg-slate-900/90 backdrop-blur-md p-1 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 flex items-center gap-1 pointer-events-auto">
-          <button
-            onClick={() => setMapMode('map')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-              mapMode === 'map'
-                ? 'bg-[#FF6B00] text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            <MapIcon className="w-3.5 h-3.5" />
-            <span>Map View</span>
-          </button>
-          <button
-            onClick={() => setMapMode('satellite')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-              mapMode === 'satellite'
-                ? 'bg-[#FF6B00] text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            <Globe className="w-3.5 h-3.5" />
-            <span>Satellite</span>
-          </button>
-          <button
-            onClick={() => setMapMode('traffic')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-              mapMode === 'traffic'
-                ? 'bg-[#FF6B00] text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            <Radio className="w-3.5 h-3.5" />
-            <span>Traffic</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Right Map Action Controls (Recenter, Zoom) */}
-      <div className="absolute top-20 right-4 z-20 flex flex-col gap-2">
-        <button
-          onClick={handleRecenter}
-          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-800/90 shadow-md border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-95"
-          title="Recenter Map"
-        >
-          <Crosshair className="w-4 h-4" />
-        </button>
-        <div className="bg-white dark:bg-slate-800/90 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col">
-          <button
-            onClick={handleZoomIn}
-            className="w-9 h-9 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border-b border-slate-100 dark:border-slate-700"
-            title="Zoom In"
-          >
-            <Plus className="w-4 h-4" />
-          </button>
-          <button
-            onClick={handleZoomOut}
-            className="w-9 h-9 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-            title="Zoom Out"
-          >
-            <Minus className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* Leaflet Map Surface */}
-      <div
-        ref={mapContainerRef}
-        className="w-full flex-1 h-full z-0 cursor-grab active:cursor-grabbing"
-      />
-
-      {/* Bottom Floating "Total Journey" Card */}
-      <div className="absolute bottom-4 left-4 right-4 z-20 pointer-events-auto">
-        <div className="bg-white/95 dark:bg-[#0D1527]/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border border-slate-200/90 dark:border-slate-800">
-          <div className="text-xs font-extrabold text-slate-900 dark:text-white mb-2">
-            Total Journey
+    <div className="flex flex-col gap-4 w-full">
+      {/* 1. TOP INTERACTIVE MAP CARD */}
+      <div className="bg-[#0B1528] dark:bg-[#070E1A] rounded-3xl overflow-hidden border border-slate-200/90 dark:border-slate-800 shadow-md flex flex-col relative h-[470px] transition-colors duration-200">
+        {/* Top Floating Controls Bar */}
+        <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
+          {/* Layer Mode Toggle Pills */}
+          <div className="bg-white/95 dark:bg-slate-900/90 backdrop-blur-md p-1 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 flex items-center gap-1 pointer-events-auto">
+            <button
+              onClick={() => setMapMode('map')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                mapMode === 'map'
+                  ? 'bg-[#1D68FE] text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <MapIcon className="w-3.5 h-3.5" />
+              <span>Map View</span>
+            </button>
+            <button
+              onClick={() => setMapMode('satellite')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                mapMode === 'satellite'
+                  ? 'bg-[#1D68FE] text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <Globe className="w-3.5 h-3.5" />
+              <span>Satellite</span>
+            </button>
+            <button
+              onClick={() => setMapMode('traffic')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                mapMode === 'traffic'
+                  ? 'bg-[#1D68FE] text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <Radio className="w-3.5 h-3.5" />
+              <span>Traffic</span>
+            </button>
           </div>
-          <div className="grid grid-cols-4 gap-2 text-center divide-x divide-slate-100 dark:divide-slate-800">
-            {/* Total Time */}
-            <div className="flex flex-col items-center">
-              <div className="w-6 h-6 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-1">
-                <Clock className="w-3.5 h-3.5" />
-              </div>
-              <span className="text-xs font-extrabold text-slate-900 dark:text-white leading-tight">
-                {Math.round(selectedRoute.total_duration_minutes)} min
-              </span>
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Total Time</span>
-            </div>
+        </div>
 
-            {/* Total Cost */}
-            <div className="flex flex-col items-center">
-              <div className="w-6 h-6 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-1">
-                <IndianRupee className="w-3.5 h-3.5" />
-              </div>
-              <span className="text-xs font-extrabold text-slate-900 dark:text-white leading-tight">
-                ₹{Math.round(selectedRoute.estimated_cost)}
-              </span>
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Total Cost</span>
-            </div>
+        {/* Right Map Action Controls (Layers, Recenter, Zoom) */}
+        <div className="absolute top-4 right-4 z-20 flex flex-col gap-2">
+          <button
+            onClick={() => setMapMode(mapMode === 'satellite' ? 'map' : 'satellite')}
+            className="w-9 h-9 rounded-xl bg-white dark:bg-slate-800/90 shadow-md border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-95"
+            title="Toggle Map Style"
+          >
+            <Layers className="w-4 h-4" />
+          </button>
+          <button
+            onClick={handleRecenter}
+            className="w-9 h-9 rounded-xl bg-white dark:bg-slate-800/90 shadow-md border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-95"
+            title="Recenter Map"
+          >
+            <Crosshair className="w-4 h-4" />
+          </button>
+          <div className="bg-white dark:bg-slate-800/90 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col">
+            <button
+              onClick={handleZoomIn}
+              className="w-9 h-9 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border-b border-slate-100 dark:border-slate-700"
+              title="Zoom In"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleZoomOut}
+              className="w-9 h-9 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              title="Zoom Out"
+            >
+              <Minus className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
 
-            {/* Stages */}
-            <div className="flex flex-col items-center">
-              <div className="w-6 h-6 rounded-full bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center mb-1">
-                <RouteIcon className="w-3.5 h-3.5" />
-              </div>
-              <span className="text-xs font-extrabold text-slate-900 dark:text-white leading-tight">
-                {stagesCount}
-              </span>
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Stages</span>
-            </div>
+        {/* Leaflet Map Surface */}
+        <div
+          ref={mapContainerRef}
+          className="w-full flex-1 h-full z-0 cursor-grab active:cursor-grabbing"
+        />
 
-            {/* Transfers */}
-            <div className="flex flex-col items-center">
-              <div className="w-6 h-6 rounded-full bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-1">
-                <Shuffle className="w-3.5 h-3.5" />
-              </div>
-              <span className="text-xs font-extrabold text-slate-900 dark:text-white leading-tight">
-                {selectedRoute.transfer_count}
-              </span>
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Transfers</span>
+        {/* Bottom Floating Legend inside Map */}
+        <div className="absolute bottom-3 left-4 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-3.5 py-1.5 rounded-full shadow-md border border-slate-200/80 dark:border-slate-700 flex items-center gap-3 text-[11px] font-bold">
+          <div className="flex items-center gap-1.5 text-orange-600 dark:text-orange-400">
+            <span className="w-3.5 h-0.5 border-t-2 border-dotted border-orange-500" />
+            <span>Walk</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+            <span className="w-3.5 h-0.5 bg-amber-500 rounded" />
+            <span>Auto</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
+            <span className="w-3.5 h-0.5 bg-blue-600 rounded" />
+            <span>Train</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. ROUTE OVERVIEW CARD (Matching Screenshot exactly) */}
+      <div className="bg-white dark:bg-[#0D1527] rounded-3xl p-5 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-heading text-sm font-black text-slate-900 dark:text-white">Route Overview</h3>
+          <button className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" title="Expand View">
+            <Maximize2 className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* 4 Core Metrics Grid */}
+        <div className="grid grid-cols-4 gap-2 text-center">
+          <div className="flex flex-col items-center">
+            <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-1">
+              <Clock className="w-4 h-4" />
+            </div>
+            <span className="text-sm font-black text-slate-900 dark:text-white">
+              {Math.round(selectedRoute.total_duration_minutes)} min
+            </span>
+            <span className="text-[10px] text-slate-400 font-bold">Total Time</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-1">
+              <IndianRupee className="w-4 h-4" />
+            </div>
+            <span className="text-sm font-black text-slate-900 dark:text-white">
+              ₹{Math.round(selectedRoute.estimated_cost)}
+            </span>
+            <span className="text-[10px] text-slate-400 font-bold">Total Cost</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <div className="w-8 h-8 rounded-full bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center mb-1">
+              <RouteIcon className="w-4 h-4" />
+            </div>
+            <span className="text-sm font-black text-slate-900 dark:text-white">{stagesCount}</span>
+            <span className="text-[10px] text-slate-400 font-bold">Stages</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <div className="w-8 h-8 rounded-full bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mb-1">
+              <Shuffle className="w-4 h-4" />
+            </div>
+            <span className="text-sm font-black text-slate-900 dark:text-white">{selectedRoute.transfer_count}</span>
+            <span className="text-[10px] text-slate-400 font-bold">Transfers</span>
+          </div>
+        </div>
+
+        {/* 4 Bottom Badges Grid */}
+        <div className="grid grid-cols-4 gap-2 pt-3 border-t border-slate-100 dark:border-slate-800 text-[10px]">
+          <div className="flex items-center gap-1.5">
+            <Footprints className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
+            <div>
+              <div className="font-bold text-slate-900 dark:text-white">{totalWalkMeters} m</div>
+              <div className="text-[9px] text-slate-400">Total Walking</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <div>
+              <div className="font-bold text-slate-900 dark:text-white">Low</div>
+              <div className="text-[9px] text-slate-400">Disruption Risk</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
+            <div>
+              <div className="font-bold text-slate-900 dark:text-white">On Time</div>
+              <div className="text-[9px] text-slate-400">High Reliability</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Sun className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+            <div>
+              <div className="font-bold text-slate-900 dark:text-white">{selectedRoute.arrival_buffer_minutes || 35} min</div>
+              <div className="text-[9px] text-slate-400">Earlier Buffer</div>
             </div>
           </div>
         </div>
