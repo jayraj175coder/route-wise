@@ -14,7 +14,10 @@ export type TransportMode =
   | 'two_wheeler'
   | 'cycling'
   | 'flight'
-  | 'auto';
+  | 'auto'
+  | 'train'
+  | 'metro'
+  | 'bus';
 
 export interface PriorityWeights {
   time: number;

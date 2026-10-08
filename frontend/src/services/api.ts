@@ -7,11 +7,35 @@ import {
   DisruptionSignal
 } from '../types/journey';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+
+async function fetchWithFallback(endpoint: string, options: RequestInit = {}): Promise<Response> {
+  // Try configured API_BASE_URL first
+  try {
+    const res = await fetch(`${API_BASE_URL}${endpoint}`, options);
+    if (res.ok) return res;
+  } catch (e) {
+    // If API_BASE_URL failed, try relative /api proxy
+    if (!API_BASE_URL.startsWith('/api')) {
+      try {
+        const resProxy = await fetch(`/api${endpoint}`, options);
+        if (resProxy.ok) return resProxy;
+      } catch (proxyErr) {
+        // Continue to fallback
+      }
+    }
+  }
+
+  // Second try: direct 127.0.0.1:8000
+  if (API_BASE_URL !== 'http://127.0.0.1:8000/api') {
+    return await fetch(`http://127.0.0.1:8000/api${endpoint}`, options);
+  }
+  throw new Error(`Failed to fetch ${endpoint}`);
+}
 
 export async function optimizeJourney(req: JourneyRequest): Promise<OptimizationResult> {
   try {
-    const res = await fetch(`${API_BASE_URL}/journey/optimize`, {
+    const res = await fetchWithFallback('/journey/optimize', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(req),
@@ -29,7 +53,7 @@ export async function reoptimizeJourney(
   prevRouteId: string
 ): Promise<ReoptimizeResult> {
   try {
-    const res = await fetch(`${API_BASE_URL}/journey/reoptimize`, {
+    const res = await fetchWithFallback('/journey/reoptimize', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -43,8 +67,8 @@ export async function reoptimizeJourney(
     console.warn('API error, using local re-optimize simulation', err);
     const optRes = getLocalFallbackOptimization(req, true);
     return {
-      previous_route: getLocalDemoRoutes(false)[0],
-      new_recommended_route: optRes.recommended_route || getLocalDemoRoutes(false)[0],
+      previous_route: getLocalDemoRoutes(false, req.origin, req.destination)[0],
+      new_recommended_route: optRes.recommended_route || getLocalDemoRoutes(false, req.origin, req.destination)[0],
       change_summary: `Route re-evaluated: Deccan Rail + Auto (Confidence: 92) is prioritized because Expressway AC Bus suffered a 65-min blockage.`,
       disruption_cause: `Severe Expressway blockage detected at Khandala Ghat (KM 42). Road delay increased by +65 mins.`,
       optimization_result: optRes,
@@ -62,7 +86,7 @@ export async function simulateWhatIf(
   }
 ): Promise<WhatIfResponse> {
   try {
-    const res = await fetch(`${API_BASE_URL}/journey/what-if`, {
+    const res = await fetchWithFallback('/journey/what-if', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -95,7 +119,7 @@ export async function simulateWhatIf(
 
 export async function runDemoScenario(triggerDisruption: boolean): Promise<OptimizationResult> {
   try {
-    const res = await fetch(`${API_BASE_URL}/demo/run`, {
+    const res = await fetchWithFallback('/demo/run', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -123,18 +147,22 @@ export async function runDemoScenario(triggerDisruption: boolean): Promise<Optim
   }
 }
 
-export function getLocalDemoRoutes(hasDisruption: boolean): CandidateRoute[] {
+export function getLocalDemoRoutes(
+  hasDisruption: boolean,
+  origin: string = 'Dadar, Mumbai',
+  destination: string = 'Hinjawadi Phase 1, Pune'
+): CandidateRoute[] {
   const expresswayDisruption: DisruptionSignal[] = hasDisruption
     ? [
         {
           id: 'dis-expressway-01',
           source: 'Times of India Traffic Alert',
-          title: 'Severe Congestion on Mumbai-Pune Expressway at Khandala Ghat',
+          title: `Severe Congestion along ${origin} to ${destination} corridor`,
           published_time: '15 mins ago',
-          url: 'https://timesofindia.indiatimes.com/auto/traffic-alert-mumbai-pune-expressway',
+          url: 'https://timesofindia.indiatimes.com/auto/traffic-alert',
           signal_type: 'road_closure',
           severity: 'high',
-          location: 'Khandala Ghat section (KM 42)',
+          location: 'Corridor choke-point',
           confidence: 0.92,
           impact_minutes: 65,
         },
@@ -148,33 +176,33 @@ export function getLocalDemoRoutes(hasDisruption: boolean): CandidateRoute[] {
       {
         id: 'seg-a1',
         mode: 'walking',
-        from_name: 'Origin (Dadar)',
-        to_name: 'Dadar Station',
+        from_name: `Origin (${origin})`,
+        to_name: `${origin} Central Station`,
         duration_minutes: 8,
         distance_meters: 450,
         cost: 0,
-        instructions: 'Walk to Dadar Railway Station Platform 3',
+        instructions: `Walk to ${origin} Central Railway Station Platform 3`,
       },
       {
         id: 'seg-a2',
         mode: 'transit',
-        from_name: 'Dadar Station',
-        to_name: 'Pune Junction',
+        from_name: `${origin} Central Station`,
+        to_name: `${destination} Junction`,
         duration_minutes: 170,
         distance_meters: 160000,
         cost: 420,
-        instructions: 'Deccan Express Train (Express Rail #11007)',
-        schedule_details: 'Departs 06:15 AM - Dedicated right-of-way rail corridor',
+        instructions: `Express Train towards ${destination}`,
+        schedule_details: 'Priority right-of-way rail corridor',
       },
       {
         id: 'seg-a3',
         mode: 'auto',
-        from_name: 'Pune Junction',
-        to_name: 'Destination (Hinjawadi IT Park)',
+        from_name: `${destination} Junction`,
+        to_name: `Destination (${destination})`,
         duration_minutes: 25,
         distance_meters: 18000,
         cost: 280,
-        instructions: 'Prepaid Auto Rickshaw via Aundh-Hinjawadi Main Road',
+        instructions: `Prepaid Auto Rickshaw directly to ${destination}`,
       },
     ],
     total_duration_minutes: 203,
@@ -411,7 +439,7 @@ function getLocalFallbackOptimization(
 
 export async function fetchPreferences(): Promise<any> {
   try {
-    const res = await fetch(`${API_BASE_URL}/preferences`);
+    const res = await fetchWithFallback('/preferences');
     if (!res.ok) throw new Error('Failed to fetch preferences');
     return await res.json();
   } catch (err) {
@@ -432,7 +460,7 @@ export async function fetchPreferences(): Promise<any> {
 
 export async function savePreferences(prefs: any): Promise<any> {
   try {
-    const res = await fetch(`${API_BASE_URL}/preferences`, {
+    const res = await fetchWithFallback('/preferences', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(prefs),
@@ -446,7 +474,7 @@ export async function savePreferences(prefs: any): Promise<any> {
 
 export async function fetchRecentSearches(): Promise<any[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/searches`);
+    const res = await fetchWithFallback('/searches');
     if (!res.ok) throw new Error('Failed to fetch searches');
     return await res.json();
   } catch (err) {
@@ -461,7 +489,7 @@ export async function fetchRecentSearches(): Promise<any[]> {
 
 export async function clearRecentSearches(): Promise<boolean> {
   try {
-    const res = await fetch(`${API_BASE_URL}/searches`, { method: 'DELETE' });
+    const res = await fetchWithFallback('/searches', { method: 'DELETE' });
     return res.ok;
   } catch (err) {
     return true;
@@ -470,7 +498,7 @@ export async function clearRecentSearches(): Promise<boolean> {
 
 export async function parseVoiceInput(transcript: string): Promise<any> {
   try {
-    const res = await fetch(`${API_BASE_URL}/voice/parse`, {
+    const res = await fetchWithFallback('/voice/parse', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ transcript }),
