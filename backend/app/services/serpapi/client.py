@@ -79,7 +79,7 @@ class SerpApiClient:
         }
 
         try:
-            response = requests.get(self.base_url, params=params, timeout=12)
+            response = requests.get(self.base_url, params=params, timeout=5)
             if response.status_code == 200:
                 return response.json()
             logger.warning(f"SerpApi directions status {response.status_code}: {response.text}")
@@ -102,7 +102,7 @@ class SerpApiClient:
             params["ll"] = location
 
         try:
-            response = requests.get(self.base_url, params=params, timeout=8)
+            response = requests.get(self.base_url, params=params, timeout=3)
             if response.status_code == 200:
                 return response.json()
             return None
@@ -122,7 +122,7 @@ class SerpApiClient:
         }
 
         try:
-            response = requests.get(self.base_url, params=params, timeout=8)
+            response = requests.get(self.base_url, params=params, timeout=3)
             if response.status_code == 200:
                 return response.json()
             return None
@@ -142,19 +142,9 @@ class SerpApiClient:
         }
 
         try:
-            response = requests.get(self.base_url, params=params, timeout=8)
+            response = requests.get(self.base_url, params=params, timeout=3)
             if response.status_code == 200:
                 return response.json()
-            # Fallback to google with tbm=nws
-            fallback_params = {
-                "engine": "google",
-                "q": query,
-                "tbm": "nws",
-                "api_key": self.api_key
-            }
-            fb_res = requests.get(self.base_url, params=fallback_params, timeout=8)
-            if fb_res.status_code == 200:
-                return fb_res.json()
             return None
         except Exception as e:
             logger.error(f"SerpApi news search failed: {e}")
