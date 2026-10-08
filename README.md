@@ -1,358 +1,517 @@
-# 🧭 RouteWise — Risk-Aware Personal Mobility Decision Engine
+# RouteWise
 
-<div align="center">
+> Risk-Aware Personal Mobility Decision Engine powered by SerpApi
 
-### **SerpApi India Hackathon 2026 Official Submission**
-**Track: Travel & Local Discovery** *(Cross-application to AI Agents & Open Innovation)*
+RouteWise is a decision engine that helps commuters choose between multimodal journey options by evaluating total travel time, monetary cost, physical walking effort, interchange friction, and live disruption intelligence. Rather than treating travel as a single-metric shortest-path calculation, RouteWise balances personal constraints against corridor uncertainty.
 
-[![SerpApi](https://img.shields.io/badge/Powered%20By-SerpApi-orange?style=for-the-badge&logo=google&logoColor=white)](https://serpapi.com)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.110.0-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
-[![React](https://img.shields.io/badge/React-18.3.1-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.4-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com)
-[![Leaflet](https://img.shields.io/badge/Leaflet-1.9.4-199900?style=for-the-badge&logo=leaflet&logoColor=white)](https://leafletjs.com)
-[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
-
-> **“Don't just find a route. Find the journey most likely to get you there on time.”**
-
-*A deterministic, multi-objective multimodal transit decision engine tailored for real-world commuter uncertainty, hard mobility constraints, and live transit signals.*
+**RouteWise does not simply find a route. It evaluates available journey options and explains why one option is recommended.**
 
 ---
 
-[🏆 Hackathon Overview](#-serpapi-india-hackathon-2026-overview) • [🌐 Meaningful SerpApi Usage](#-meaningful-serpapi-usage-material-contribution) • [💡 Core Problem & Innovation](#-the-core-problem--innovation) • [🏗️ Architecture](#-system-architecture) • [🧮 Decision Formula](#-multi-objective-scoring-formula) • [⚡ 3-Minute Demo Video Guide](#-3-minute-demo-video-walkthrough) • [🛠️ Setup & Running](#-setup--running-locally) • [🤖 AI Disclosure](#-ai-tools-disclosure)
+## 1. The Problem
 
-</div>
+Traditional navigation and route-planning tools typically optimize for a single dimension—usually shortest travel time or minimal distance. In real-world travel, commuters face trade-offs and uncertainties that standard maps do not adequately account for:
 
----
+- **Rigid User Constraints:** Hard deadlines (interviews, examinations, flight check-ins), strict financial budgets, and physical walking limits are rarely treated as strict boundaries.
+- **Hidden Transfer & Walking Friction:** A route that looks 5 minutes faster on paper may involve multiple tight interchanges or steep walking distances that carry high failure risk.
+- **Unmodeled Disruption Risk:** Static schedules cannot foresee breaking news, highway accidents, protests, waterlogging, or rail corridor mega-blocks.
+- **Lack of Decision Transparency:** Commuters are presented with directions, but never an explanation of *why* an alternative was rejected or *how* a disruption affects their arrival safety buffer.
 
-## 🏆 SerpApi India Hackathon 2026 Overview
-
-| Requirement | Project Submission Details |
-| :--- | :--- |
-| **Event** | **SerpApi India Hackathon 2026** (Sep 1 – Oct 10, 2026, IST) |
-| **Submission Track** | **Travel & Local Discovery** *(Eligible for Open Innovation & AI Agents)* |
-| **Primary SerpApi Engines** | `google_maps_directions`, `google_maps`, `google_news`, `google` |
-| **Repository Status** | Public GitHub repository with end-to-end local reproducibility |
-| **Zero Secrets Stored** | API keys managed via local `.env` (gitignored); zero exposed secrets |
-| **Residency & Team** | Built in India for the Indian commuter ecosystem (Mumbai, Pune, Navi Mumbai) |
+RouteWise turns route planning into a **decision-making problem** rather than simply displaying directions.
 
 ---
 
-## 🌐 Meaningful SerpApi Usage (Material Contribution)
+## 2. The Solution
 
-In accordance with Hackathon Rule §3 (*"SerpApi must make a material contribution to the submitted project's functionality"*), **SerpApi is the central telemetry and ground-truth ingestion engine of RouteWise**.
+RouteWise transforms commuter intent and live search intelligence into an explainable, risk-adjusted mobility decision through a structured decision pipeline:
 
-RouteWise does **not** make cosmetic API calls. It combines **four distinct SerpApi search engines** to drive candidate generation and numerical disruption risk scoring:
-
-```mermaid
-flowchart LR
-    subgraph SERP ["SerpApi Telemetry Engine"]
-        E1["1. google_maps_directions\nTransit & Highway Routing"]
-        E2["2. google_maps\nLocal Hubs & Transfer Stands"]
-        E3["3. google_news\nLive Incidents & Delay Alerts"]
-        E4["4. google (Web)\nCorridor Feasibility & Advisories"]
-    end
-
-    subgraph ENGINE ["RouteWise Decision Pipeline"]
-        CAND["Candidate Generation &\nLeg Normalization"]
-        PENALTY["Mathematical Disruption\nPenalty Engine (P_risk)"]
-        PARETO["Multi-Objective Pareto\nScoring & Ranking"]
-    end
-
-    E1 --> CAND
-    E2 --> CAND
-    E3 --> PENALTY
-    E4 --> PENALTY
-    CAND --> PARETO
-    PENALTY --> PARETO
+```
+User constraints & travel intent
+        ↓
+Candidate journey options (Transit & Road)
+        ↓
+Hard constraint filtering (Budget, Walking, Transfers, Deadline)
+        ↓
+Multi-objective score normalization
+        ↓
+SerpApi-powered disruption intelligence (News & Search)
+        ↓
+Risk and reliability adjustment (Corridor penalties & Confidence Score)
+        ↓
+Recommended route selection
+        ↓
+Evidence presentation & grounded numerical explanation
+        ↓
+Interactive What-If simulation / Dynamic re-optimization
 ```
 
-### 1. `google_maps_directions` via SerpApi (`travel_mode=3` & `travel_mode=0`)
-- **Location:** [`backend/app/services/serpapi/client.py`](file:///c:/Users/Admin/Downloads/routewise/backend/app/services/serpapi/client.py)
-- **Role:** Pulls live multimodal candidate itineraries (Suburban Local Trains, city buses, cabs, driving routes) connecting the commuter's exact origin and destination.
-- **Why it matters:** Extracts real-world route legs, transit agencies (Central Railway, BEST, NMMT), transfer waypoints, and leg durations as the baseline candidate pool.
-
-### 2. `google_maps` (Local Transit & Station Search) via SerpApi
-- **Location:** [`backend/app/services/serpapi/client.py`](file:///c:/Users/Admin/Downloads/routewise/backend/app/services/serpapi/client.py)
-- **Role:** Discovers intermediate multimodal connection points (e.g., local auto-rickshaw stands, station entry gates, shared cab points).
-- **Why it matters:** Solves the critical "First-Mile / Last-Mile" transfer problem that causes commuters to miss rail connections.
-
-### 3. `google_news` (Real-Time Disruption Intelligence) via SerpApi
-- **Location:** [`backend/app/services/serpapi/disruptions.py`](file:///c:/Users/Admin/Downloads/routewise/backend/app/services/serpapi/disruptions.py)
-- **Role:** Actively monitors the corridor for breaking incidents by querying:
-  - `"{origin} {destination} highway traffic disruption accident today"`
-  - `"{origin} {destination} local train delay mega block today"`
-  - `"{origin} waterlogging traffic delay today"`
-- **Why it matters:** Converts unstructured news articles into **structured numerical risk factors** (severity, time impact, confidence, and source citations). These directly penalize fragile routes in the scoring formula ($P_{\text{disruption}}$).
-
-### 4. `google` (Web Search Corridor Advisories) via SerpApi
-- **Location:** [`backend/app/services/serpapi/client.py`](file:///c:/Users/Admin/Downloads/routewise/backend/app/services/serpapi/client.py)
-- **Role:** Queries general traffic police advisories, bridge closures, and weather warnings.
-
-### 🛡️ Graceful Hybrid Fallback Architecture
-If no SerpApi key is provided (or if network connectivity is intermittent), RouteWise seamlessly switches to its **internal high-precision multimodal mobility engine** with zero latency, ensuring the application remains **100% operational and verifiable during offline evaluations**.
+Every stage of this workflow is implemented directly in the RouteWise application stack.
 
 ---
 
-## 💡 The Core Problem & Innovation
+## 3. Why SerpApi?
 
-### The Commuter Problem
-Traditional navigators assume ideal conditions. They tell a commuter:
-> *"Arrive at 9:58 AM for your 10:00 AM interview."*
+SerpApi is **not** included as a cosmetic API call or an afterthought. It provides the **external live intelligence** that grounds RouteWise's decision-making in real-world conditions.
 
-In reality:
-1. A **3-minute delay** on a suburban local train causes a missed connection.
-2. A single highway breakdown turns a 35-minute drive into a 90-minute bottleneck.
-3. Commuters with physical walking limits or tight daily budgets are offered unrealistic itineraries.
+### How RouteWise Uses SerpApi
 
-### The RouteWise Solution
-RouteWise shifts the paradigm from **"Fastest in theory"** to **"Most reliable in reality"**:
-1. **Hard Constraint Pruning**: Automatically discards routes that exceed budget, exceed walking limits, or have too many transfers.
-2. **RouteWise Confidence Score (0–100)**: A transparent composite score quantifying arrival safety buffer, transfer tightness, corridor right-of-way, and disruption signals.
-3. **Dynamic Re-optimization**: If conditions change, the engine reroutes and provides a grounded explanation of why the ranking shifted.
-4. **Multilingual Continuous Voice Assistant**: Built for India with native **English**, **मराठी (Marathi)**, and **हिंदी (Hindi)** continuous voice recognition.
+RouteWise integrates four distinct search engines through SerpApi (`backend/app/services/serpapi/`):
+
+1. **`google_maps_directions` (`engine="google_maps_directions"`)**
+   - Retrieves live multimodal candidate transit and driving itineraries (`travel_mode=3` for public transit; `travel_mode=0` for driving/cabs).
+   - Extracts real-world duration, distance, transit agencies, interchange waypoints, and leg breakdowns.
+2. **`google_news` (`engine="google_news"`)**
+   - Scans current news indices for live incidents along the corridor (e.g., query: `"{origin} {destination} traffic delay accident"`).
+   - Identifies breaking disruptions such as accidents, waterlogging, highway blockages, or train cancellations.
+3. **`google` Web Search (`engine="google"`)**
+   - Queries web advisories and corridor-level traffic updates to capture non-news municipal notices.
+4. **`google_maps` Local Search (`engine="google_maps"`)**
+   - Queries transfer points, stations, and local transit access hubs.
+
+### The Intelligence Pipeline
+
+```
+RouteWise
+  → Retrieves live corridor search & news via SerpApi
+  → Normalizes signals into structured disruption models (severity, impact, source, url)
+  → Calculates numerical risk penalties (P_disruption)
+  → Feeds penalties directly into the deterministic decision engine
+  → Adjusts candidate rankings, arrival safety buffers, and confidence scores
+  → Surfaces verified news evidence and citations directly to the user
+```
+
+### Clarifying the Boundary
+
+> **Route optimization is handled by RouteWise's own decision engine. SerpApi provides external search intelligence that enriches the decision.**
+
+SerpApi does not run the multi-objective scoring formula, enforce user budgets, or rank candidate routes. RouteWise's internal engine executes all constraint filtering, normalization, scoring, and explanation generation.
+
+### Why SerpApi Matters
+
+Without SerpApi, a decision engine would have to rely entirely on static timetables or idealized road conditions, remaining blind to breaking disruptions. SerpApi supplies the live external signals needed to detect that an apparently "fast" expressway route is currently blocked, enabling RouteWise to steer the commuter toward a more dependable rail or metro alternative before they leave home.
 
 ---
 
-## 🏗️ System Architecture
+## 4. Core Features
+
+The following features are fully implemented and verified in the RouteWise codebase:
+
+| Feature | Implementation Component | Verified Functionality |
+| :--- | :--- | :--- |
+| **Constraint-Based Filtering** | `backend/app/engine/constraints.py` | Eliminates routes exceeding user budget, walking threshold, transfer count, or arrival deadline. |
+| **Multi-Objective Route Scoring** | `backend/app/engine/scoring.py` | Evaluates journeys across time, cost, comfort, walking, buffer, and reliability using intent presets. |
+| **RouteWise Confidence Score** | `backend/app/engine/scoring.py` | Computes a bounded 0–100 score reflecting safety buffer, transfer count, mode reliability, and disruption penalty. |
+| **Live Disruption Intelligence** | `backend/app/services/serpapi/disruptions.py` | Queries Google News via SerpApi to extract active road closures, accidents, and delay notices. |
+| **SerpApi Evidence Drawer** | `frontend/src/components/DisruptionFeed.tsx` | Displays publisher, headline, timestamp, impact estimate, and direct links to source articles. |
+| **Interactive What-If Simulator** | `frontend/src/components/WhatIfSimulator.tsx` | Allows real-time tweaking of budget, walking limit, transfers, and priorities with instant re-ranking. |
+| **Dynamic Re-Optimization** | `backend/app/api/endpoints.py` (`/journey/reoptimize`) | Re-evaluates journey options when a corridor disruption is reported and highlights the recommendation delta. |
+| **Explainable Recommendations** | `backend/app/engine/explanations.py` | Generates transparent, value-grounded comparisons detailing exact numerical savings over alternatives. |
+| **Interactive Route Map** | `frontend/src/components/InteractiveMapPanel.tsx` | Leaflet-based map rendering route geometry, waypoints, transfer points, and corridor paths. |
+| **Journey Comparison Matrix** | `frontend/src/components/AlternativesModal.tsx` | Side-by-side modal comparing trade-offs between Best Fit, Cheapest, Fastest, and Most Reliable routes. |
+| **Autonomous Local Fallback** | `backend/app/services/route_generator.py` | Embedded multimodal route generator for key corridors when no SerpApi key is supplied or offline. |
+| **Automated Test Suite** | `backend/tests/` | 17 pytest unit and integration tests covering endpoints, constraints, scoring, and optimizer logic. |
+
+---
+
+## 5. How RouteWise Makes a Decision
+
+RouteWise uses a **deterministic multi-objective decision engine**. It does not use opaque black-box machine learning to guess recommendations; decisions are fully auditable, reproducible, and explainable.
+
+### Decision Pipeline Stages
+
+1. **Hard Constraint Filtering:**
+   Every candidate route $r$ is checked against user constraints:
+   - Estimated Cost $\le$ Max Budget
+   - Walking Distance (meters) $\le$ Max Walking Distance
+   - Transfer Count $\le$ Max Transfers
+   - Arrival Buffer (minutes) $\ge$ 0 (if an arrival deadline is provided)
+   
+   Routes failing any constraint are disqualified from the recommended spot and cataloged with specific violation reasons.
+
+2. **Sub-Score Normalization:**
+   Candidate metrics are normalized on a relative 0–100 scale across all eligible candidates:
+   - Duration score: $S_{\text{time}} = 100 \times \frac{\max(\text{dur}) - \text{dur}}{\max(\text{dur}) - \min(\text{dur}) + \epsilon}$
+   - Cost score: $S_{\text{cost}} = 100 \times \frac{\max(\text{cost}) - \text{cost}}{\max(\text{cost}) - \min(\text{cost}) + \epsilon}$
+   - Walking score: $S_{\text{walk}} = 100 \times \frac{\max(\text{walk}) - \text{walk}}{\max(\text{walk}) - \min(\text{walk}) + \epsilon}$
+   - Transfer score: $S_{\text{transfer}} = \max(0, 100 - (\text{transfers} \times 25))$
+   - Arrival buffer score: $S_{\text{buffer}} = \min(100, \max(0, \text{buffer} \times 2))$
+   - Mode reliability score: $S_{\text{rel}}$ based on baseline historical punctuality of the transit mode.
+
+3. **Risk & Disruption Penalty:**
+   The risk engine assesses route vulnerability based on highway exposure, transfer tightness, and active SerpApi disruption signals:
+   - $P_{\text{disruption}} = \sum \text{Impact}(\text{signal}) \times \text{SeverityWeight}$
+   - High-severity incidents (closures, severe flooding) impose higher penalties than minor slowdowns.
+
+4. **Multi-Objective Weighted Aggregation:**
+   Objective weights are resolved from the user's travel intent preset (e.g., Interview, Exam, Flight, Emergency, Family, Budget, General) combined with any custom priority sliders:
+   $$\text{Score} = (w_t \cdot S_{\text{time}} + w_c \cdot S_{\text{cost}} + w_w \cdot S_{\text{walk}} + w_{\text{tr}} \cdot S_{\text{transfer}} + w_b \cdot S_{\text{buffer}} + w_r \cdot S_{\text{rel}}) - P_{\text{disruption}}$$
+
+5. **Final Ranking & Tagging:**
+   Valid routes are ranked by overall score. The highest-scoring route is designated **Best Fit**. The engine also tags the **Cheapest**, **Fastest**, and **Most Reliable** routes for comparative inspection.
+
+---
+
+## 6. SerpApi Data Flow
 
 ```mermaid
 flowchart TD
-    subgraph FRONTEND ["Client Architecture (React 18 + TypeScript + Vite)"]
-        UI_Voice["🎙️ Multilingual Voice Modal\n(Continuous Speech: EN, MR, HI)"]
-        UI_Plan["📝 Plan Your Journey Panel\n(Direct Number Editing, Geolocation)"]
-        UI_Center["📊 Center Dashboard\n(Route Hero, Mode Photos, Timeline)"]
-        UI_Map["🗺️ Interactive Map Panel\n(Leaflet Vector Engine + Radar Finding HUD)"]
-        UI_Sim["🎛️ What-If Simulator & Sensitivity Radar"]
-    end
-
-    subgraph BACKEND ["Backend Services (FastAPI + Python 3.11)"]
-        API_GW["FastAPI Router Gateway (/api)"]
-        NLP_PARSE["Natural Language Voice Parser\n(Multi-dialect Canonical Matcher)"]
-        SERP_CLIENT["SerpApi Client Layer\n(Directions, Local Maps, News, Web)"]
-        ENGINE["Deterministic Optimization Engine"]
-    end
-
-    subgraph ENGINE_DETAILS ["Deterministic Optimization Core"]
-        HCF["1. Hard Constraint Filter\n(Budget, Walking, Transfers, Deadline)"]
-        RISK["2. Disruption & Risk Analyzer\n(Rail vs Highway vs SerpApi Signals)"]
-        NORM["3. Linear Normalizer (0-100)\n(Time, Cost, Walk, Transfers, Buffer, Reliability)"]
-        SCORER["4. Multi-Objective Intent Weighting\n(Interview, Exam, Flight, Emergency, Budget)"]
-        EXPL["5. Grounded Explanation Generator"]
-    end
-
-    UI_Voice -->|Speech Text| API_GW
-    UI_Plan -->|Journey Request| API_GW
-    UI_Sim -->|What-If Parameters| API_GW
-
-    API_GW --> NLP_PARSE
-    API_GW --> SERP_CLIENT
-    API_GW --> ENGINE
-
-    ENGINE --> HCF --> RISK --> NORM --> SCORER --> EXPL
-    SERP_CLIENT -.->|Live News & Traffic| RISK
-    EXPL --> UI_Center
-    NORM --> UI_Center
+    A[Commuter / User] -->|Origin, Destination, Constraints| B[RouteWise Backend / FastAPI]
+    B -->|Search Parameters| C[SerpApi Client]
+    
+    C -->|engine=google_maps_directions| D1[Transit & Driving Directions]
+    C -->|engine=google_news| D2[Live Corridor Incident Search]
+    C -->|engine=google| D3[Web Traffic Advisories]
+    C -->|engine=google_maps| D4[Local Transit & Transfer Hubs]
+    
+    D1 --> E[Signal Normalization]
+    D2 --> E
+    D3 --> E
+    D4 --> E
+    
+    E -->|Normalized Candidate Routes & Disruption Signals| F[RouteWise Decision Engine]
+    F -->|Hard Constraints Filtering| F1[Valid vs Rejected Candidates]
+    F1 -->|Multi-Objective Scoring & Risk Penalties| F2[Ranking & Confidence Calculation]
+    F2 -->|Grounded Justification| F3[Explanation Generation]
+    
+    F3 --> G[Frontend Dashboard / UI]
+    G --> H1[Interactive Route Map & Polylines]
+    G --> H2[Recommended Journey & Confidence Meter]
+    G --> H3[SerpApi Disruption Evidence Cards]
+    G --> H4[What-If Simulator & Re-Optimization]
 ```
 
 ---
 
-## 🧮 Multi-Objective Scoring Formula
+## 7. System Architecture
 
-RouteWise evaluates candidate journeys using seven normalized sub-scores ($S \in [0, 100]$):
+RouteWise is organized as a decoupled two-tier architecture:
 
-$$S_{\text{time}}, \quad S_{\text{cost}}, \quad S_{\text{walking}}, \quad S_{\text{transfers}}, \quad S_{\text{buffer}}, \quad S_{\text{reliability}}, \quad S_{\text{risk}}$$
+```
+┌────────────────────────────────────────────────────────┐
+│                   Frontend (React + Vite)              │
+│  - Journey Input & Intent Presets                      │
+│  - Leaflet Map (Route Polylines & Markers)             │
+│  - Risk Radar & Confidence Meter                       │
+│  - What-If Simulator & Disruption Evidence Drawer      │
+└───────────────────────────┬────────────────────────────┘
+                            │ HTTP / JSON REST
+┌───────────────────────────▼────────────────────────────┐
+│                   Backend (FastAPI)                    │
+│  ├── API Routers (/api/journey, /api/demo, /api/voice) │
+│  ├── RouteWise Decision Engine                         │
+│  │     ├── Hard Constraint Filter                      │
+│  │     ├── Sub-score Normalizer                        │
+│  │     ├── Risk Engine & Disruption Penalty            │
+│  │     ├── Intent-Weighted Scorer                      │
+│  │     └── Deterministic Explainer                     │
+│  ├── SerpApi Integration Service                       │
+│  │     ├── Google Maps Directions Client               │
+│  │     ├── Google News Disruption Monitor              │
+│  │     └── Normalizer to CandidateRoute Domain Model   │
+│  └── SQLite Database (Preferences & Recent Searches)   │
+└────────────────────────────────────────────────────────┘
+```
 
-### Composite Scoring Equation:
-$$\text{Score}_{\text{composite}} = \sum_{i \in \text{metrics}} (w_i \cdot S_i) - (w_{\text{risk}} \cdot P_{\text{disruption}})$$
+---
 
-### User Intent Presets & Weight Distributions:
-| Intent Preset | Priority Weights | Target User Outcome |
+## 8. Tech Stack
+
+| Layer | Technology | Purpose |
 | :--- | :--- | :--- |
-| **👔 Interview** | Buffer ($0.26$), Reliability ($0.28$) | Guarantees safety buffer; avoids risky highway transfers |
-| **🎓 Exam** | Buffer ($0.30$), Reliability ($0.30$), Walk ($0.10$) | Punctuality over cost; minimum physical fatigue |
-| **✈️ Flight** | Buffer ($0.30$), Transfers ($0.20$) | Avoids missed connections; predictable arrival window |
-| **🚨 Emergency** | Time ($0.65$), Reliability ($0.25$) | Absolute minimum transit duration |
-| **👨‍👩‍👦 Family** | Walk ($0.25$), Transfers ($0.25$), Comfort ($0.20$) | Shorter walking distance, fewer stairs/transfers |
-| **💰 Budget** | Cost ($0.60$), Time ($0.15$) | Lowest overall transit expenditure |
-| **🧭 General** | Balanced ($0.20$ across all) | Harmonious trade-off between speed, cost, and comfort |
+| **Backend Framework** | FastAPI 0.110+ | High-performance Python async REST API and OpenAPI documentation. |
+| **Backend Runtime** | Python 3.11+ | Type-annotated backend service runtime. |
+| **Validation & Schema** | Pydantic v2 | Strict request/response domain modeling and serialization. |
+| **External Intelligence** | SerpApi | Live Google Maps directions and Google News disruption discovery. |
+| **Numerical Processing** | NumPy | Mathematical array operations and score normalization. |
+| **Local Persistence** | SQLite / SQLAlchemy | Lightweight local storage for user preferences and search history. |
+| **Testing** | Pytest / HTTPX | Automated unit and integration test suite. |
+| **Frontend Framework** | React 19 / TypeScript | Type-safe declarative single-page application. |
+| **Build Tool** | Vite 8 | Fast frontend development and asset bundling. |
+| **Styling** | TailwindCSS 3.4 | Utility-first responsive dark-mode user interface. |
+| **Mapping** | Leaflet 1.9 / OpenStreetMap | Interactive client-side map rendering without proprietary map keys. |
+| **Animation & Icons** | Framer Motion & Lucide React | Micro-interactions, slide-out drawers, and UI iconography. |
 
 ---
 
-## 🗺️ Zero-API-Key Map Engine & Radar Finding HUD
-
-RouteWise includes a **100% self-contained vector mapping engine**:
-- **Zero API Keys & Zero Quotas**: Powered by **Leaflet**, **CartoDB Voyager**, **ArcGIS World Imagery**, and **OpenStreetMap**.
-- **Dynamic Finding Radar HUD**:
-  When **Optimize Journey** is clicked, a high-tech scanning radar HUD appears over the map:
-  - Concentric radar ripple waves (`animate-radar-ripple`).
-  - 360-degree sweeping radar beam (`animate-radar-sweep`).
-  - Central radar beacon and cyan crosshairs.
-  - Live rotating status ticker (*"Triangulating multimodal corridors..."*, *"Polling Suburban train timetables..."*, *"Analyzing road congestion..."*).
-
----
-
-## ⚡ 3-Minute Demo Video Walkthrough
-
-The project is structured for easy recording of the required **< 3-minute hackathon demo video**:
-
-| Timecode | Demonstration Step | Action on Screen |
-| :---: | :--- | :--- |
-| **0:00 - 0:35** | **The Problem & Voice Search** | Open app at `localhost:5173`. Click the microphone and speak: *"Rabale to Thane by 10:10 AM budget 50 rupees"* (or toggle to Marathi/Hindi). Show instant constraint extraction. |
-| **0:35 - 1:15** | **Radar Finding & Optimization** | Click **Optimize Journey**. Point out the animated **Radar Finding HUD** on the map, sweeping radar beam, and live ticker as RouteWise computes Pareto routes. |
-| **1:15 - 1:55** | **Hero Recommendation & Explanations** | Review the **Recommended Option** (e.g. *Mumbai Suburban Local Train + Auto*, Score: 89/100, ₹30 cost, 17 min, +35 min buffer). Show realistic transit photos and collapsible itinerary stages. |
-| **1:55 - 2:30** | **Live Disruption & SerpApi Signals** | Open the **Risk Radar / Signals** modal. Show live SerpApi-powered Google News & Maps traffic signals penalizing highway alternatives. |
-| **2:30 - 3:00** | **What-If Simulation & Preferences** | Adjust the Budget and Walking sliders in the **What-If Simulator**. Show instantaneous re-ranking of alternatives. Toggle between Light and Dark mode. |
-
----
-
-## 📁 Repository Structure
+## 9. Project Structure
 
 ```
-routewise/
+route-wise/
+├── .env.example                 # Root environment variable template
+├── README.md                    # Project documentation
+├── routewise.db                 # Local SQLite database (auto-created)
+│
 ├── backend/
+│   ├── .env.example             # Backend environment template
+│   ├── requirements.txt         # Python dependencies
+│   ├── pytest.ini               # Pytest configuration
 │   ├── app/
-│   │   ├── main.py                     # FastAPI application entrypoint & CORS middleware
+│   │   ├── main.py              # FastAPI application entry point and CORS configuration
 │   │   ├── api/
-│   │   │   ├── endpoints.py            # REST endpoints (optimize, reoptimize, voice, serpapi)
-│   │   │   └── schemas.py              # Pydantic validation schemas
-│   │   ├── engine/                     # Deterministic Mathematical Optimization Engine
-│   │   │   ├── constraints.py          # Hard constraint pruning (Budget, Walk, Transfers)
-│   │   │   ├── normalization.py        # 0–100 sub-score normalizer
-│   │   │   ├── risk.py                 # Corridor & disruption risk evaluator
-│   │   │   ├── scoring.py              # Multi-objective Pareto scoring
-│   │   │   ├── optimizer.py            # Candidate ranking pipeline
-│   │   │   └── explanations.py         # Grounded numerical explanation generator
-│   │   ├── services/
-│   │   │   ├── voice_parser.py         # Multilingual transit NLP parser (EN, MR, HI)
-│   │   │   ├── route_generator.py      # Multimodal candidate synthesis engine
-│   │   │   ├── location_service.py     # IP & browser geolocation service
-│   │   │   └── serpapi/                # Dedicated SerpApi Integration Layer
-│   │   │       ├── client.py           # SerpApi HTTP client (Directions, Local, News, Web)
-│   │   │       ├── disruptions.py      # Google News & Search disruption signals
-│   │   │       └── normalizer.py       # Directions response normalizer
-│   │   └── models/
-│   │       └── domain.py               # Domain models (JourneyRequest, CandidateRoute, etc.)
-│   ├── tests/                          # Complete pytest test suite (15 unit & integration tests)
-│   ├── requirements.txt                # Python dependencies
-│   └── pytest.ini                      # Pytest runner configuration
+│   │   │   ├── endpoints.py     # API route handlers (/journey, /demo, /preferences, /voice)
+│   │   │   └── schemas.py       # Pydantic request and response schemas
+│   │   ├── db/
+│   │   │   ├── database.py      # SQLite connection and session management
+│   │   │   └── models.py        # SQLAlchemy models for preferences and search history
+│   │   ├── engine/
+│   │   │   ├── constraints.py   # Hard constraint filtering logic
+│   │   │   ├── normalization.py # Linear score normalization (0-100)
+│   │   │   ├── risk.py          # Risk factor and disruption penalty calculation
+│   │   │   ├── scoring.py       # Multi-objective weighted scoring & Confidence Score
+│   │   │   ├── optimizer.py     # Main optimization pipeline orchestrator
+│   │   │   └── explanations.py  # Value-grounded numerical justification generator
+│   │   ├── models/
+│   │   │   └── domain.py        # Core domain types (CandidateRoute, DisruptionSignal, etc.)
+│   │   └── services/
+│   │       ├── route_generator.py # Multimodal candidate route generator & fallback
+│   │       ├── voice_parser.py    # Rule-based voice transcript parsing
+│   │       └── serpapi/
+│   │           ├── client.py      # SerpApi client for Google Maps & Google News
+│   │           ├── disruptions.py # Live disruption query and signal extraction
+│   │           └── normalizer.py  # Maps SerpApi directions responses to CandidateRoutes
+│   └── tests/
+│       ├── test_api.py          # API route endpoint integration tests
+│       ├── test_constraints.py  # Hard constraint validation unit tests
+│       ├── test_optimizer.py    # Optimization pipeline and re-optimization tests
+│       └── test_scoring.py      # Scoring formula, presets, and confidence bounds tests
 │
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── Navbar.tsx              # Top navigation bar with dark mode toggle & settings
-│   │   │   ├── PlanYourJourney.tsx     # Left panel: Voice assistant & constraint inputs
-│   │   │   ├── VoiceInput.tsx          # Continuous multilingual speech recognition modal
-│   │   │   ├── CenterDashboard.tsx     # Center panel: Route hero card, photo stages, itinerary
-│   │   │   ├── InteractiveMapPanel.tsx # Right panel: Leaflet map, Radar HUD & Route Overview
-│   │   │   ├── TravelerPreferencesSidebar.tsx # Personalization slide-over panel
-│   │   │   ├── WhatIfSimulator.tsx     # Real-time parameter stress-testing simulator
-│   │   │   ├── DecisionSensitivity.tsx # Sensitivity radar visualizer
-│   │   │   ├── AlternativesModal.tsx   # Detailed route comparison modal
-│   │   │   ├── ScoreBreakdownModal.tsx # Grounded Pareto score breakdown modal
-│   │   │   ├── EvidenceModal.tsx       # Live disruption intelligence evidence modal
-│   │   │   └── DisclaimerFooter.tsx    # Positioning notice & footer
-│   │   ├── services/
-│   │   │   └── api.ts                  # Backend API client with offline fallback
-│   │   ├── types/
-│   │   │   └── journey.ts              # TypeScript domain types
-│   │   ├── App.tsx                     # Main 3-panel responsive layout
-│   │   ├── index.css                   # Tailwind styles, radar keyframes & custom scrollbars
-│   │   └── main.tsx                    # Application entrypoint
-│   ├── tailwind.config.js              # Custom color palette & fonts
-│   ├── vite.config.ts                  # Vite build configuration
-│   └── package.json                    # Frontend dependencies & scripts
-│
-└── README.md                           # Documentation & Hackathon Manifesto
+└── frontend/
+    ├── package.json             # Frontend dependencies and scripts
+    ├── vite.config.ts           # Vite configuration with API proxy (/api -> :8000)
+    ├── tailwind.config.js       # TailwindCSS design tokens
+    └── src/
+        ├── App.tsx              # Main dashboard application layout
+        ├── main.tsx             # React DOM root mounting
+        ├── types/journey.ts     # TypeScript interfaces mirroring backend domain models
+        ├── services/api.ts      # Axios/Fetch API client functions
+        └── components/
+            ├── PlanYourJourney.tsx    # Origin, destination, deadline, and constraint input form
+            ├── InteractiveMapPanel.tsx# Leaflet map displaying route polylines and markers
+            ├── CenterDashboard.tsx    # Recommended journey card, metrics, and action triggers
+            ├── ScoreBreakdown.tsx     # Normalized sub-scores and weight visualization
+            ├── RiskRadar.tsx          # Confidence meter, risk flags, and disruption alerts
+            ├── DisruptionFeed.tsx     # SerpApi live evidence and news drawer
+            ├── WhatIfSimulator.tsx    # Real-time constraint manipulation modal
+            ├── AlternativesModal.tsx  # Side-by-side journey comparison matrix
+            └── VoiceSearchModal.tsx   # Speech recognition input interface
 ```
 
 ---
 
-## 🛠️ Setup & Running Locally
+## 10. Local Setup
+
+> **RouteWise is designed to run locally for the hackathon demonstration; public deployment is not required by the project.**
+
+Follow these steps to set up and run RouteWise locally.
 
 ### Prerequisites
-- **Python**: `3.10+` (Python 3.11 recommended)
-- **Node.js**: `18+` & `npm`
 
----
+- **Python 3.11+** installed
+- **Node.js 18+** and **npm** installed
+- A **SerpApi API key** (Optional for local testing; an autonomous internal fallback is included for offline demonstration)
 
-### Step 1: Backend Setup
+### Step 1: Clone the Repository
+
 ```bash
-# Navigate to backend directory
+git clone https://github.com/jayraj175coder/route-wise.git
+cd route-wise
+```
+
+### Step 2: Backend Setup
+
+Open a terminal and navigate to the `backend/` directory:
+
+```bash
 cd backend
 
-# Create virtual environment
+# Create a virtual environment
 python -m venv venv
 
-# Activate virtual environment
+# Activate the virtual environment
 # Windows (PowerShell):
 .\venv\Scripts\Activate.ps1
-# Linux / macOS:
+# macOS / Linux:
 source venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
-
-# Run Unit Tests to verify setup
-pytest -v
-
-# Start FastAPI development server
-python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
-Backend API will be live at `http://localhost:8000`.  
-Interactive Swagger documentation is available at `http://localhost:8000/docs`.
 
-#### Configuring SerpApi:
-Create a `.env` file in `backend/`:
+### Step 3: Configure Environment Variables
+
+Create a `.env` file in the `backend/` directory using the provided template:
+
+```bash
+cp .env.example .env
+```
+
+Edit `backend/.env` and supply your SerpApi key:
+
 ```env
 SERPAPI_API_KEY=your_serpapi_key_here
 ```
-*(If no key is configured, RouteWise runs in high-fidelity deterministic engine mode with 0 errors).*
 
----
+*(If you do not have an active SerpApi key, RouteWise runs using its internal multimodal candidate generator, keeping maps and optimization fully functional).*
 
-### Step 2: Frontend Setup
+### Step 4: Run the Backend Server
+
+With the virtual environment activated, start the FastAPI development server:
+
 ```bash
-# In a new terminal, navigate to frontend directory
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+The backend is now live at `http://localhost:8000`. You can verify API health at `http://localhost:8000/api/health` or browse interactive documentation at `http://localhost:8000/docs`.
+
+### Step 5: Frontend Setup
+
+Open a second terminal window and navigate to the `frontend/` directory:
+
+```bash
 cd frontend
 
-# Install dependencies
+# Install npm dependencies
 npm install
+```
 
-# Start Vite React development server
+### Step 6: Run the Frontend Application
+
+Start the Vite development server:
+
+```bash
 npm run dev
 ```
-Open **`http://localhost:5173`** in your browser.
+
+The frontend application will start and display the local URL:
+```
+http://localhost:5173
+```
+
+Open `http://localhost:5173` in any modern web browser to interact with RouteWise.
 
 ---
 
-## 🧪 Unit Tests
+## 11. Environment Variables
 
-Run the complete backend test suite:
+The project uses a single primary environment variable:
+
+| Variable | Required | Default / Placeholder | Description |
+| :--- | :---: | :--- | :--- |
+| `SERPAPI_API_KEY` | Optional | `your_serpapi_api_key_here` | SerpApi key used to query Google Maps Directions, Google News, and Google Web search. |
+
+> **Warning:** Never commit API keys or secrets to GitHub. Always store them in local, gitignored `.env` files.
+
+---
+
+## 12. Testing
+
+The backend includes a comprehensive automated test suite built with **pytest** and **httpx**.
+
+### Test Suite Summary
+
+- **Total Tests:** 17 tests across 4 test modules (all passing).
+- **Execution Time:** ~10 seconds.
+- **Coverage Areas:**
+  - `tests/test_api.py` (5 tests): Validates `/health`, `/serpapi/status`, `/journey/optimize`, `/demo/run`, and `/journey/what-if` endpoints.
+  - `tests/test_constraints.py` (4 tests): Verifies hard constraint enforcement (budget ceilings, maximum walking distance, maximum transfers, arrival deadlines).
+  - `tests/test_optimizer.py` (3 tests): Tests risk evaluation with active disruptions, re-optimization ranking shifts, and What-If parameter modification.
+  - `tests/test_scoring.py` (4 tests): Tests intent preset weight blending, confidence score mathematical bounds [0, 100], and cost vs. reliability prioritization.
+
+### Running Backend Tests
+
+From the `backend/` directory with your virtual environment active:
+
 ```bash
-cd backend
 pytest -v
 ```
 
-Verified test coverage:
-- ✅ **Hard Constraints**: Rejection of journeys exceeding budget, walking limits, or transfer thresholds.
-- ✅ **Mathematical Scoring**: Verification of intent weightings (Interview vs Exam vs Budget).
-- ✅ **SerpApi Signal Parsing**: Disruption extraction and risk penalty computation.
-- ✅ **Re-optimization Logic**: Route shifts under live simulated highway accidents.
-- ✅ **Voice NLP**: Multi-lingual phrase parsing and entity extraction.
+Expected output:
+```
+tests/test_api.py::test_api_root PASSED
+tests/test_api.py::test_api_health PASSED
+tests/test_api.py::test_api_serpapi_status PASSED
+tests/test_api.py::test_api_optimize_journey PASSED
+tests/test_api.py::test_api_demo_run PASSED
+tests/test_api.py::test_api_what_if PASSED
+tests/test_constraints.py::test_budget_constraint_enforced PASSED
+tests/test_constraints.py::test_walking_constraint_enforced PASSED
+tests/test_constraints.py::test_transfer_constraint_enforced PASSED
+tests/test_constraints.py::test_deadline_arrival_buffer_enforced PASSED
+tests/test_optimizer.py::test_risk_evaluation_with_disruption PASSED
+tests/test_optimizer.py::test_reoptimization_ranking_shift PASSED
+tests/test_optimizer.py::test_what_if_budget_expansion PASSED
+tests/test_scoring.py::test_intent_presets_weights PASSED
+tests/test_scoring.py::test_confidence_score_bounds_and_disclaimer PASSED
+tests/test_scoring.py::test_cheapest_wins_budget_mode PASSED
+tests/test_scoring.py::test_reliable_wins_interview_mode PASSED
+
+======================= 17 passed in 10.41s =======================
+```
 
 ---
 
-## 🤖 AI Tools Disclosure
+## 13. Demo Flow
 
-In accordance with Hackathon Rule §5 (*"Use of AI tools"*):
-- **Tools Used**: Google Antigravity (Gemini 2.5/Pro) & Claude 3.5 Sonnet.
-- **Contribution**: Utilized as an interactive AI pair-programmer for UI code scaffolding, TypeScript interfaces, test cases, and CSS animation keyframes.
-- **Human Authorship**: Mathematical scoring formulas, domain routing algorithms, SerpApi integration architecture, and application design were conceptualized and validated by the project team.
+For judges evaluating the application, the following walkthrough demonstrates the core decision workflow:
+
+1. **Enter Origin and Destination:**
+   Use the default corridor (e.g., *Dadar, Mumbai* to *Hinjawadi Phase 1, Pune*) or enter your own corridor.
+2. **Configure Journey Constraints:**
+   Set an Arrival Deadline (e.g., `10:10 AM`), a Maximum Budget (e.g., `₹1500`), and select the **Interview** intent preset.
+3. **Generate Journey Options:**
+   Click **"Optimize Journey"**. The engine retrieves candidate routes and filters out options violating constraints.
+4. **Examine the Recommended Route:**
+   Inspect the central recommendation card. Note the **RouteWise Confidence Score**, estimated travel time, total fare, and walking distance.
+5. **Review Decision Reasoning:**
+   Read the **"Why This Route?"** explanation box, which provides grounded numerical justifications comparing the top pick against the fastest and cheapest alternatives.
+6. **Open SerpApi Disruption Evidence:**
+   Click **"Disruptions"** or inspect the Risk Radar panel to view active incidents pulled from Google News via SerpApi, complete with publisher names, timestamps, and severity levels.
+7. **Demonstrate Dynamic Re-Optimization ("Something Changed"):**
+   Click **"Simulate Disruption"** or trigger re-optimization. Observe how highway delay signals cause the engine to downgrade cab routes and elevate rail options to protect the commuter's arrival buffer.
+8. **Test the What-If Simulator:**
+   Open the **"What-If Simulator"**, adjust budget or walking sliders, and see in real time whether the top recommendation shifts and why.
 
 ---
 
-## 📄 License
+## 14. Hackathon Context
 
-This project is licensed under the **MIT License**. Built for the **SerpApi India Hackathon 2026**.
+### SerpApi India Hackathon 2026
+
+- **Track:** Travel & Local Discovery
+- **Relevance:** Urban mobility in India is defined by multimodal complexity (suburban locals, metro lines, auto-rickshaws, shared cabs) and unpredictable disruptions (waterlogging, accidents, mega-blocks). RouteWise fits the Travel & Local Discovery track by turning chaotic navigation data into actionable, dependable travel decisions for Indian commuters.
+- **SerpApi Materiality:** RouteWise does not call SerpApi for trivial lookups. SerpApi is integral to candidate generation (`google_maps_directions`, `google_maps`) and corridor risk intelligence (`google_news`, `google`). The live search signals directly alter route ranking scores, arrival confidence scores, and route recommendations.
+
+---
+
+## 15. AI Disclosure
+
+To ensure complete transparency regarding the project's development and architecture:
+
+- **AI Tools Used in Development:** Generative AI coding assistants (including GitHub Copilot and Google Antigravity / Gemini) were utilized during development for code authoring assistance, typing, and refactoring support.
+- **Application Architecture:** The RouteWise decision engine itself is **100% deterministic**. It does **not** rely on opaque Large Language Model prompts or non-deterministic neural networks to calculate route scores, filter constraints, or rank journeys. All scoring equations, weight blending, constraint checks, and risk penalties are explicit mathematical algorithms implemented in Python.
+
+---
+
+## 16. Limitations & Honest Notes
+
+- **External API Dependency:** When `SERPAPI_API_KEY` is provided, live directions and news queries depend on external SerpApi responsiveness and network connectivity. If the API is unreachable, RouteWise falls back to its internal multimodal engine.
+- **Unstructured News Parsing:** While the disruption monitor extracts severity and impact from Google News snippets, news articles may occasionally lack hyper-precise kilometer markers.
+- **Local Demonstration Scope:** RouteWise is packaged as a local development project; it does not currently run on a hosted cloud domain.
+- **Transit Schedule Approximations:** Where live transit feeds do not provide real-time GPS telemetry for suburban buses or shared auto stands, RouteWise uses published timetable intervals and local transfer estimates.
+
+---
+
+## 17. Future Improvements
+
+Future iterations planned for RouteWise include:
+
+- **Real-Time Public Transit GTFS-RT Feeds:** Integrating live GPS feeds for city bus corporations (BEST, DTC, BMTC) alongside SerpApi search intelligence.
+- **Hyper-Local Crowdsourced Incident Reports:** Allowing commuters to report platform congestion or auto-rickshaw availability at key stations.
+- **Multi-City Corridor Expansion:** Pre-configuring corridor profiles and suburban rail networks for Bengaluru, Delhi-NCR, Chennai, and Kolkata.
+- **Return Journey Optimization:** Simultaneous round-trip decision optimization with return deadline guarantees.
+
+---
+
+## 18. License
+
+This repository does not currently include a formal standalone license file. All original code was created for the SerpApi India Hackathon 2026. Standard open-source evaluation terms apply for hackathon judging and demonstration purposes.
