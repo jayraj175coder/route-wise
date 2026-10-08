@@ -21,8 +21,12 @@ import {
   Users,
   SlidersHorizontal,
   X,
+  LocateFixed,
+  Loader2,
+  CheckCircle2,
 } from 'lucide-react';
 import { VoiceInput } from './VoiceInput';
+import { getUserCurrentLocation, DetectedLocation } from '../services/geolocation';
 
 interface PlanYourJourneyProps {
   request: JourneyRequest;
@@ -50,6 +54,26 @@ export const PlanYourJourney: React.FC<PlanYourJourneyProps> = ({
 }) => {
   const [showPriorities, setShowPriorities] = useState(false);
   const [isEditingTime, setIsEditingTime] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
+  const [detectedLocation, setDetectedLocation] = useState<DetectedLocation | null>(null);
+
+  const handleDetectLocation = async () => {
+    setIsLocating(true);
+    try {
+      const loc = await getUserCurrentLocation();
+      setDetectedLocation(loc);
+      const updated = {
+        ...request,
+        origin: loc.name,
+      };
+      onChangeRequest(updated);
+      onOptimize(updated);
+    } catch (err) {
+      console.error('Failed to detect current location:', err);
+    } finally {
+      setIsLocating(false);
+    }
+  };
 
   const handleSwap = () => {
     onChangeRequest({
@@ -109,15 +133,47 @@ export const PlanYourJourney: React.FC<PlanYourJourneyProps> = ({
               className="w-full text-xs font-bold text-slate-900 dark:text-white bg-transparent focus:outline-none truncate"
             />
           </div>
-          {request.origin && (
+          <div className="flex items-center gap-1 shrink-0">
+            {/* GPS Live Locate Button */}
             <button
-              onClick={() => onChangeRequest({ ...request, origin: '' })}
-              className="text-slate-300 dark:text-slate-500 hover:text-slate-500 dark:hover:text-slate-300 p-0.5"
+              type="button"
+              onClick={handleDetectLocation}
+              disabled={isLocating}
+              className={`p-1.5 rounded-lg transition-all flex items-center gap-1 ${
+                isLocating
+                  ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400'
+                  : 'text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:scale-105 active:scale-95'
+              }`}
+              title="Use current location (GPS / Network)"
             >
-              <X className="w-3.5 h-3.5" />
+              {isLocating ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600 dark:text-blue-400" />
+              ) : (
+                <LocateFixed className="w-3.5 h-3.5" />
+              )}
             </button>
-          )}
+            {request.origin && (
+              <button
+                type="button"
+                onClick={() => onChangeRequest({ ...request, origin: '' })}
+                className="text-slate-300 dark:text-slate-500 hover:text-slate-500 dark:hover:text-slate-300 p-0.5"
+                title="Clear origin"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* Live Detected Location Badge */}
+        {detectedLocation && (
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-[10px] text-emerald-700 dark:text-emerald-300 animate-in fade-in">
+            <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span className="truncate">
+              Detected live position: <strong>{detectedLocation.name}</strong> ({detectedLocation.source.toUpperCase()})
+            </span>
+          </div>
+        )}
 
         {/* Swap Button on Right side */}
         <button

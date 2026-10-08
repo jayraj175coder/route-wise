@@ -91,6 +91,35 @@ const LOCATION_COORDINATES: Record<string, [number, number]> = {
 function resolveCoords(name: string): [number, number] | null {
   if (!name) return null;
   const lower = name.toLowerCase().trim();
+
+  // 1. Check if coordinates were saved in sessionStorage for user's detected live location
+  try {
+    const cached = sessionStorage.getItem('routewise_user_coords');
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (
+        parsed.name &&
+        (lower.includes(parsed.name.toLowerCase()) ||
+          parsed.name.toLowerCase().includes(lower) ||
+          lower.includes('current location') ||
+          lower.includes('my location'))
+      ) {
+        return [parsed.latitude, parsed.longitude];
+      }
+    }
+  } catch (e) {
+    // Ignore storage parse error
+  }
+
+  // 2. Check if string is direct "lat, lon"
+  const commaMatch = lower.match(/^([-+]?[0-9]*\.?[0-9]+)\s*,\s*([-+]?[0-9]*\.?[0-9]+)$/);
+  if (commaMatch) {
+    const lat = parseFloat(commaMatch[1]);
+    const lon = parseFloat(commaMatch[2]);
+    if (!isNaN(lat) && !isNaN(lon)) return [lat, lon];
+  }
+
+  // 3. Match against known locality coordinates
   for (const [key, coords] of Object.entries(LOCATION_COORDINATES)) {
     if (lower.includes(key)) {
       return coords;
