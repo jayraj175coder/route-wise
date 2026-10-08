@@ -98,66 +98,172 @@ export const PlanYourJourney: React.FC<PlanYourJourneyProps> = ({
     });
   };
 
+  const handleExampleSelect = (type: 'rabale_thane' | 'cheapest') => {
+    if (type === 'rabale_thane') {
+      const updated: JourneyRequest = {
+        ...request,
+        origin: 'Rabale, New Mumbai',
+        destination: 'Thane',
+        arrival_deadline: '10:10 AM',
+        max_budget: 100,
+        max_walking_distance_meters: 1000,
+        max_transfers: 3,
+        intent: 'general',
+      };
+      onChangeRequest(updated);
+      onOptimize(updated);
+    } else if (type === 'cheapest') {
+      const updated: JourneyRequest = {
+        ...request,
+        intent: 'budget',
+        weights: {
+          cost: 0.6,
+          time: 0.15,
+          reliability: 0.15,
+          walking: 0.05,
+          comfort: 0.05,
+        },
+      };
+      onChangeRequest(updated);
+      onOptimize(updated);
+    }
+  };
+
   return (
-    <div className="bg-white dark:bg-[#0D1527] rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-sm p-5 space-y-4 transition-colors duration-200">
-      {/* Header */}
-      <div>
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-[#FF6B00]" />
-          <h2 className="font-heading text-lg font-black text-slate-900 dark:text-white tracking-tight">
-            Plan Your Journey
-          </h2>
+    <div className="bg-white dark:bg-[#0D1527] rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-sm overflow-hidden space-y-4 pb-5 transition-colors duration-200">
+      {/* Top Blue Hero Card matching Screenshot */}
+      <div className="bg-gradient-to-br from-[#0A1B3A] via-[#102752] to-[#193A72] p-5 text-white space-y-4 relative overflow-hidden">
+        {/* Subtle decorative background stars */}
+        <div className="absolute top-2 right-4 text-blue-300/30 text-lg select-none">✦</div>
+        <div className="absolute bottom-6 right-16 text-blue-300/20 text-sm select-none">★</div>
+        
+        <div>
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-amber-400 fill-amber-400" />
+            <h2 className="font-heading text-lg font-black text-white tracking-tight">
+              Plan Your Journey
+            </h2>
+          </div>
+          <p className="text-[11px] text-slate-300 mt-1 leading-snug">
+            Find the best way to travel based on your time, budget and real-time conditions.
+          </p>
         </div>
-        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-          Find the best way to travel based on your time, budget and real-time conditions.
-        </p>
+
+        {/* Voice Assistant Box */}
+        <VoiceInput onApplyJourney={handleVoiceApply} />
       </div>
 
-      {/* Voice Assistant Pill */}
-      <VoiceInput onApplyJourney={handleVoiceApply} />
+      {/* Main Form Fields Container */}
+      <div className="px-5 space-y-4">
+        {/* Examples Chips Line */}
+        <div className="flex items-center gap-2 text-xs flex-wrap">
+          <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-400">Examples:</span>
+          <button
+            type="button"
+            onClick={() => handleExampleSelect('rabale_thane')}
+            className="px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-[11px] font-bold text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors"
+          >
+            "Rabale to Thane by 10:10"
+          </button>
+          <button
+            type="button"
+            onClick={() => handleExampleSelect('cheapest')}
+            className="px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-[11px] font-bold text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors"
+          >
+            "Cheapest route"
+          </button>
+        </div>
 
-      {/* From / To Inputs with Right Swap Button */}
-      <div className="relative space-y-2">
-        {/* From Input */}
-        <div className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 hover:border-slate-300 dark:hover:border-slate-600 transition-all focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-400">
-          <div className="w-4 h-4 rounded-full border-2 border-emerald-500 flex items-center justify-center shrink-0">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <span className="text-[9px] font-bold uppercase text-slate-400 dark:text-slate-400 block leading-tight">From</span>
-            <input
-              type="text"
-              value={request.origin}
-              onChange={(e) => onChangeRequest({ ...request, origin: e.target.value })}
-              placeholder="Origin address or station"
-              className="w-full text-xs font-bold text-slate-900 dark:text-white bg-transparent focus:outline-none truncate"
-            />
-          </div>
-          <div className="flex items-center gap-1 shrink-0">
-            {/* GPS Live Locate Button */}
-            <button
-              type="button"
-              onClick={handleDetectLocation}
-              disabled={isLocating}
-              className={`p-1.5 rounded-lg transition-all flex items-center gap-1 ${
-                isLocating
-                  ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400'
-                  : 'text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:scale-105 active:scale-95'
-              }`}
-              title="Use current location (GPS / Network)"
-            >
-              {isLocating ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600 dark:text-blue-400" />
-              ) : (
-                <LocateFixed className="w-3.5 h-3.5" />
-              )}
-            </button>
-            {request.origin && (
+        {/* From / To Inputs with Right Swap Button */}
+        <div className="relative space-y-2">
+          {/* From Input */}
+          <div className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 hover:border-slate-300 dark:hover:border-slate-600 transition-all focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-400">
+            <div className="w-5 h-5 rounded-full border-2 border-emerald-500 flex items-center justify-center shrink-0">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            </div>
+            <div className="flex-1 min-w-0 pr-6">
+              <span className="text-[9px] font-bold uppercase text-slate-400 dark:text-slate-400 block leading-tight">From</span>
+              <input
+                type="text"
+                value={request.origin}
+                onChange={(e) => onChangeRequest({ ...request, origin: e.target.value })}
+                placeholder="Origin address or station"
+                className="w-full text-xs font-bold text-slate-900 dark:text-white bg-transparent focus:outline-none truncate"
+              />
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              {/* GPS Live Locate Button */}
               <button
                 type="button"
-                onClick={() => onChangeRequest({ ...request, origin: '' })}
+                onClick={handleDetectLocation}
+                disabled={isLocating}
+                className={`p-1.5 rounded-lg transition-all flex items-center gap-1 ${
+                  isLocating
+                    ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400'
+                    : 'text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:scale-105 active:scale-95'
+                }`}
+                title="Use current location (GPS / Network)"
+              >
+                {isLocating ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600 dark:text-blue-400" />
+                ) : (
+                  <LocateFixed className="w-3.5 h-3.5" />
+                )}
+              </button>
+              {request.origin && (
+                <button
+                  type="button"
+                  onClick={() => onChangeRequest({ ...request, origin: '' })}
+                  className="text-slate-300 dark:text-slate-500 hover:text-slate-500 dark:hover:text-slate-300 p-0.5"
+                  title="Clear origin"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Live Detected Location Badge */}
+          {detectedLocation && (
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-[10px] text-emerald-700 dark:text-emerald-300 animate-in fade-in">
+              <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span className="truncate">
+                Detected live position: <strong>{detectedLocation.name}</strong> ({detectedLocation.source.toUpperCase()})
+              </span>
+            </div>
+          )}
+
+          {/* Swap Button on Right side */}
+          <button
+            type="button"
+            onClick={handleSwap}
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-7 h-7 rounded-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-blue-600 dark:text-blue-400 flex items-center justify-center shadow-sm hover:scale-105 active:scale-95 transition-all"
+            title="Swap Origin and Destination"
+          >
+            <ArrowUpDown className="w-3.5 h-3.5" />
+          </button>
+
+          {/* To Input */}
+          <div className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 hover:border-slate-300 dark:hover:border-slate-600 transition-all focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-400">
+            <div className="w-5 h-5 rounded-full border-2 border-rose-500 flex items-center justify-center shrink-0">
+              <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+            </div>
+            <div className="flex-1 min-w-0 pr-6">
+              <span className="text-[9px] font-bold uppercase text-slate-400 dark:text-slate-400 block leading-tight">To</span>
+              <input
+                type="text"
+                value={request.destination}
+                onChange={(e) => onChangeRequest({ ...request, destination: e.target.value })}
+                placeholder="Destination address or college"
+                className="w-full text-xs font-bold text-slate-900 dark:text-white bg-transparent focus:outline-none truncate"
+              />
+            </div>
+            {request.destination && (
+              <button
+                type="button"
+                onClick={() => onChangeRequest({ ...request, destination: '' })}
                 className="text-slate-300 dark:text-slate-500 hover:text-slate-500 dark:hover:text-slate-300 p-0.5"
-                title="Clear origin"
+                title="Clear destination"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -165,178 +271,138 @@ export const PlanYourJourney: React.FC<PlanYourJourneyProps> = ({
           </div>
         </div>
 
-        {/* Live Detected Location Badge */}
-        {detectedLocation && (
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-[10px] text-emerald-700 dark:text-emerald-300 animate-in fade-in">
-            <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
-            <span className="truncate">
-              Detected live position: <strong>{detectedLocation.name}</strong> ({detectedLocation.source.toUpperCase()})
-            </span>
-          </div>
-        )}
-
-        {/* Swap Button on Right side */}
-        <button
-          type="button"
-          onClick={handleSwap}
-          className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-7 h-7 rounded-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-blue-600 dark:text-blue-400 flex items-center justify-center shadow-sm hover:scale-105 active:scale-95 transition-all"
-          title="Swap Origin and Destination"
-        >
-          <ArrowUpDown className="w-3.5 h-3.5" />
-        </button>
-
-        {/* To Input */}
-        <div className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 hover:border-slate-300 dark:hover:border-slate-600 transition-all focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-400">
-          <div className="w-4 h-4 rounded-full border-2 border-rose-500 flex items-center justify-center shrink-0">
-            <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-          </div>
-          <div className="flex-1 min-w-0 pr-6">
-            <span className="text-[9px] font-bold uppercase text-slate-400 dark:text-slate-400 block leading-tight">To</span>
-            <input
-              type="text"
-              value={request.destination}
-              onChange={(e) => onChangeRequest({ ...request, destination: e.target.value })}
-              placeholder="Destination address or college"
-              className="w-full text-xs font-bold text-slate-900 dark:text-white bg-transparent focus:outline-none truncate"
-            />
-          </div>
-          {request.destination && (
-            <button
-              onClick={() => onChangeRequest({ ...request, destination: '' })}
-              className="text-slate-300 dark:text-slate-500 hover:text-slate-500 dark:hover:text-slate-300 p-0.5"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Date & Time Picker Card */}
-      <div className="px-3.5 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-7 h-7 rounded-xl bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-            <Calendar className="w-4 h-4" />
-          </div>
-          <div>
-            <span className="text-[9px] font-bold uppercase text-slate-400 block leading-tight">Date & Time</span>
-            {isEditingTime ? (
-              <input
-                type="text"
-                autoFocus
-                onBlur={() => setIsEditingTime(false)}
-                value={request.arrival_deadline || '10:10 AM'}
-                onChange={(e) => onChangeRequest({ ...request, arrival_deadline: e.target.value })}
-                className="text-xs font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-700 px-1.5 py-0.5 rounded border border-blue-400 focus:outline-none w-28"
-              />
-            ) : (
-              <span
-                onClick={() => setIsEditingTime(true)}
-                className="text-xs font-extrabold text-slate-900 dark:text-white cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
-              >
-                Today, {request.arrival_deadline || '10:10 AM'}
-              </span>
-            )}
-          </div>
-        </div>
-        <button
-          onClick={() => setIsEditingTime(!isEditingTime)}
-          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1"
-        >
-          <ChevronDown className="w-4 h-4" />
-        </button>
-      </div>
-
-      {/* 2x2 Constraints Grid (Walking, Budget, Transfers) */}
-      <div className="grid grid-cols-2 gap-2.5">
-        {/* Walking */}
-        <div className="p-3 rounded-2xl border border-slate-200/90 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/60 flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-xl bg-purple-50 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
-            <Footprints className="w-4 h-4" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <span className="text-[9px] font-bold text-slate-400 block leading-tight">Walking</span>
-            <input
-              type="number"
-              min="100"
-              max="5000"
-              step="100"
-              value={request.max_walking_distance_meters}
-              onChange={(e) =>
-                onChangeRequest({
-                  ...request,
-                  max_walking_distance_meters: Math.max(100, parseInt(e.target.value) || 100),
-                })
-              }
-              className="text-xs font-extrabold text-slate-900 dark:text-white bg-transparent focus:outline-none w-14"
-            />
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
-              {request.max_walking_distance_meters >= 1000
-                ? `${(request.max_walking_distance_meters / 1000).toFixed(1)} km`
-                : 'm'}
-            </span>
-          </div>
-        </div>
-
-        {/* Budget */}
-        <div className="p-3 rounded-2xl border border-slate-200/90 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/60 flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-xl bg-teal-50 dark:bg-teal-900/40 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
-            <IndianRupee className="w-4 h-4" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <span className="text-[9px] font-bold text-slate-400 block leading-tight">Budget</span>
-            <div className="flex items-center">
-              <span className="text-xs font-extrabold text-slate-900 dark:text-white">₹</span>
-              <input
-                type="number"
-                min="20"
-                max="5000"
-                step="10"
-                value={request.max_budget}
-                onChange={(e) =>
-                  onChangeRequest({
-                    ...request,
-                    max_budget: Math.max(10, parseFloat(e.target.value) || 10),
-                  })
-                }
-                className="text-xs font-extrabold text-slate-900 dark:text-white bg-transparent focus:outline-none w-full"
-              />
+        {/* Date & Time Picker Card */}
+        <div className="px-3.5 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/70 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+              <Calendar className="w-4 h-4" />
             </div>
-          </div>
-        </div>
-
-        {/* Transfers */}
-        <div className="p-3 rounded-2xl border border-slate-200/90 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/60 flex items-center gap-2.5 col-span-2">
-          <div className="w-7 h-7 rounded-xl bg-purple-50 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
-            <Shuffle className="w-4 h-4" />
-          </div>
-          <div className="flex-1 min-w-0 flex items-center justify-between">
             <div>
-              <span className="text-[9px] font-bold text-slate-400 block leading-tight">Transfers</span>
-              <span className="text-xs font-extrabold text-slate-900 dark:text-white">{request.max_transfers} max</span>
+              <span className="text-[9px] font-bold uppercase text-slate-400 block leading-tight">Date & Time</span>
+              {isEditingTime ? (
+                <input
+                  type="text"
+                  autoFocus
+                  onBlur={() => setIsEditingTime(false)}
+                  value={request.arrival_deadline || '10:10 AM'}
+                  onChange={(e) => onChangeRequest({ ...request, arrival_deadline: e.target.value })}
+                  className="text-xs font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-700 px-1.5 py-0.5 rounded border border-blue-400 focus:outline-none w-28"
+                />
+              ) : (
+                <span
+                  onClick={() => setIsEditingTime(true)}
+                  className="text-xs font-extrabold text-slate-900 dark:text-white cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+                >
+                  Today, {request.arrival_deadline || '10:10 AM'}
+                </span>
+              )}
             </div>
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() =>
-                  onChangeRequest({ ...request, max_transfers: Math.max(0, request.max_transfers - 1) })
-                }
-                className="w-5 h-5 rounded-md bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 font-extrabold flex items-center justify-center text-xs hover:bg-slate-100 dark:hover:bg-slate-600"
-              >
-                -
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  onChangeRequest({ ...request, max_transfers: request.max_transfers + 1 })
-                }
-                className="w-5 h-5 rounded-md bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 font-extrabold flex items-center justify-center text-xs hover:bg-slate-100 dark:hover:bg-slate-600"
-              >
-                +
-              </button>
+          </div>
+          <button
+            onClick={() => setIsEditingTime(!isEditingTime)}
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1"
+          >
+            <ChevronDown className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Constraints Grid (Walking Limit, Budget, Transfers) */}
+        <div className="grid grid-cols-2 gap-2.5">
+          {/* Walking Limit with Stepper Buttons */}
+          <div className="p-3 rounded-2xl border border-slate-200/90 dark:border-slate-700 bg-white dark:bg-slate-800/70 flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+              <Footprints className="w-4 h-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="text-[9px] font-bold text-slate-400 block leading-tight">Walking Limit</span>
+              <div className="flex items-center justify-between mt-0.5">
+                <span className="text-xs font-black text-slate-900 dark:text-white">
+                  {request.max_walking_distance_meters} m
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onChangeRequest({
+                        ...request,
+                        max_walking_distance_meters: Math.max(100, request.max_walking_distance_meters - 100),
+                      })
+                    }
+                    className="w-5 h-5 rounded-md bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center transition-colors"
+                  >
+                    -
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onChangeRequest({
+                        ...request,
+                        max_walking_distance_meters: Math.min(5000, request.max_walking_distance_meters + 100),
+                      })
+                    }
+                    className="w-5 h-5 rounded-md bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center transition-colors"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Budget with Stepper Buttons */}
+          <div className="p-3 rounded-2xl border border-slate-200/90 dark:border-slate-700 bg-white dark:bg-slate-800/70 flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <IndianRupee className="w-4 h-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="text-[9px] font-bold text-slate-400 block leading-tight">Budget</span>
+              <div className="flex items-center justify-between mt-0.5">
+                <span className="text-xs font-black text-slate-900 dark:text-white">
+                  ₹{Math.round(request.max_budget)}
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onChangeRequest({
+                        ...request,
+                        max_budget: Math.max(10, request.max_budget - 10),
+                      })
+                    }
+                    className="w-5 h-5 rounded-md bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center transition-colors"
+                  >
+                    -
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onChangeRequest({
+                        ...request,
+                        max_budget: Math.min(5000, request.max_budget + 10),
+                      })
+                    }
+                    className="w-5 h-5 rounded-md bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center transition-colors"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Transfers Card */}
+          <div className="p-3 rounded-2xl border border-slate-200/90 dark:border-slate-700 bg-white dark:bg-slate-800/70 flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+              <Shuffle className="w-4 h-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="text-[9px] font-bold text-slate-400 block leading-tight">Transfers</span>
+              <span className="text-xs font-black text-slate-900 dark:text-white block mt-0.5">
+                {request.max_transfers} max
+              </span>
             </div>
           </div>
         </div>
-      </div>
 
       {/* Travel Purpose (2x4 Grid) */}
       <div className="space-y-2">
@@ -432,16 +498,17 @@ export const PlanYourJourney: React.FC<PlanYourJourneyProps> = ({
         )}
       </div>
 
-      {/* Big Orange CTA Button */}
-      <button
-        type="button"
-        disabled={isLoading}
-        onClick={() => onOptimize()}
-        className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-[#FF6B00] to-[#FF4500] hover:from-[#FF5E00] hover:to-[#E63E00] text-white font-extrabold text-sm shadow-md hover:shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
-      >
-        <Sparkles className="w-4 h-4 fill-white" />
-        <span>{isLoading ? 'Optimizing Routes...' : 'Optimize Journey →'}</span>
-      </button>
+        {/* Big Orange CTA Button */}
+        <button
+          type="button"
+          disabled={isLoading}
+          onClick={() => onOptimize()}
+          className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-[#FF6B00] to-[#FF4500] hover:from-[#FF5E00] hover:to-[#E63E00] text-white font-extrabold text-sm shadow-md hover:shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
+        >
+          <Sparkles className="w-4 h-4 fill-white" />
+          <span>{isLoading ? 'Optimizing Routes...' : 'Optimize Journey →'}</span>
+        </button>
+      </div>
     </div>
   );
 };

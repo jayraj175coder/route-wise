@@ -156,45 +156,48 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onApplyJourney }) => {
 
   return (
     <div className="space-y-3">
-      {/* Prominent Voice Input Bar */}
-      <div className="p-3 rounded-2xl bg-gradient-to-r from-blue-50/80 via-white to-orange-50/60 border border-slate-200/90 shadow-2xs flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
-            isListening
-              ? 'bg-rose-500 text-white animate-pulse'
-              : 'bg-blue-600 text-white shadow-2xs'
-          }`}>
-            <Mic className="w-4 h-4" />
+      {/* Prominent Voice Input Card Matching Screenshot */}
+      <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-100 dark:border-slate-700/80 shadow-md flex items-center justify-between gap-3 transition-all">
+        <div className="flex items-center gap-3 min-w-0">
+          <div
+            className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
+              isListening
+                ? 'bg-rose-500 text-white animate-pulse'
+                : 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400'
+            }`}
+          >
+            <Volume2 className="w-5 h-5 stroke-[2.2]" />
           </div>
           <div className="min-w-0">
-            <div className="text-xs font-bold text-slate-800 leading-tight truncate">
-              {isListening ? 'Listening to your journey...' : 'Tell RouteWise where you need to go'}
+            <div className="text-xs font-black text-slate-900 dark:text-white leading-tight truncate">
+              {isListening ? 'Listening to your journey...' : 'Tell RouteWise where you want to go'}
             </div>
-            <div className="text-[10px] text-slate-500 truncate">
+            <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
               {isListening
                 ? (transcript || 'Say destination, time & budget...')
-                : 'Speak naturally in English or Hindi (e.g. Dadar to Hinjawadi)'}
+                : 'Speak naturally in English or Marathi'}
             </div>
           </div>
         </div>
 
-        {/* Action Button */}
+        {/* Orange Circular Mic Button */}
         {isListening ? (
           <button
             type="button"
             onClick={handleStopListening}
-            className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shrink-0 shadow-2xs transition-all active:scale-95"
+            className="w-10 h-10 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shrink-0 shadow-md flex items-center justify-center transition-all active:scale-95"
+            title="Stop listening"
           >
-            Done
+            <MicOff className="w-5 h-5" />
           </button>
         ) : (
           <button
             type="button"
             onClick={handleStartListening}
-            className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold shrink-0 shadow-2xs transition-all active:scale-95 flex items-center gap-1.5"
+            className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#FF7A1A] to-[#FF4500] hover:from-[#FF6B00] hover:to-[#E63E00] text-white shrink-0 shadow-md hover:shadow-lg flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+            title="Speak your journey"
           >
-            <Mic className="w-3.5 h-3.5 text-blue-600" />
-            <span>Speak</span>
+            <Mic className="w-5 h-5 text-white" />
           </button>
         )}
       </div>

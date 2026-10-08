@@ -32,6 +32,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'plan', label: 'Plan Journey' },
     { id: 'alternatives', label: 'Alternatives' },
     { id: 'signals', label: 'Live Signals' },
+    { id: 'map', label: 'Map' },
     { id: 'score', label: 'Score Breakdown' },
   ];
 
@@ -99,7 +100,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             title="Live Notifications & Alerts"
           >
             <Bell className="w-4 h-4" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-800" />
+            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white dark:ring-slate-800">
+              1
+            </span>
           </button>
 
           {/* Dark Mode Toggle Button */}
@@ -116,18 +119,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </button>
 
-          {/* Settings Button (In place of 'J' avatar) */}
+          {/* J User Avatar Button (Toggles Traveler Preferences & Settings) */}
           <button
             onClick={onTogglePreferences}
-            className={`w-9 h-9 rounded-full flex items-center justify-center border shadow-xs transition-all active:scale-95 ${
+            className={`w-9 h-9 rounded-full bg-[#0E1B38] text-white font-bold text-sm flex items-center justify-center shadow-xs transition-all active:scale-95 ${
               isPreferencesOpen
-                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 ring-2 ring-blue-300 dark:ring-blue-700'
-                : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
+                ? 'ring-2 ring-blue-500 ring-offset-2'
+                : 'hover:opacity-90'
             }`}
             title="Traveler Preferences & Settings"
-            aria-label="Settings"
+            aria-label="Traveler Preferences"
           >
-            <Settings className="w-4 h-4" />
+            J
           </button>
         </div>
       </div>
