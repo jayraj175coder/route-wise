@@ -33,20 +33,20 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ request, onSim
   };
 
   return (
-    <div className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-sm space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+    <div className="bg-white dark:bg-[#0D1527] rounded-2xl p-6 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-5 transition-colors">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
+          <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400">
             <SlidersHorizontal className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="font-heading text-lg font-bold text-slate-900 flex items-center gap-2">
+            <h3 className="font-heading text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <span>What-If Simulator</span>
-              <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-extrabold uppercase border border-blue-200">
+              <span className="px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-[10px] font-extrabold uppercase border border-blue-200 dark:border-blue-700">
                 Stress Testing
               </span>
             </h3>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Dynamically manipulate constraints to see the decision engine re-rank alternative journeys in real-time.
             </p>
           </div>
@@ -55,10 +55,10 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ request, onSim
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Budget Slider */}
-        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-2">
+        <div className="bg-slate-50 dark:bg-slate-850 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-2">
           <div className="flex justify-between items-center text-xs">
-            <span className="text-slate-600 font-medium">Budget Threshold</span>
-            <span className="font-extrabold text-emerald-600">₹{budget}</span>
+            <span className="text-slate-600 dark:text-slate-400 font-medium">Budget Threshold</span>
+            <span className="font-extrabold text-emerald-600 dark:text-emerald-400">₹{budget}</span>
           </div>
           <input
             type="range"
@@ -71,19 +71,19 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ request, onSim
               setBudget(val);
               applyChanges(val, walking, transfers, costWeight, relWeight);
             }}
-            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+            className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-600"
           />
-          <div className="flex justify-between text-[10px] text-slate-400">
+          <div className="flex justify-between text-[10px] text-slate-400 dark:text-slate-500">
             <span>₹400</span>
             <span>₹3,000</span>
           </div>
         </div>
 
         {/* Walking Slider */}
-        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-2">
+        <div className="bg-slate-50 dark:bg-slate-850 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-2">
           <div className="flex justify-between items-center text-xs">
-            <span className="text-slate-600 font-medium">Max Walking Limit</span>
-            <span className="font-extrabold text-blue-600">{walking}m</span>
+            <span className="text-slate-600 dark:text-slate-400 font-medium">Max Walking Limit</span>
+            <span className="font-extrabold text-blue-600 dark:text-blue-400">{walking}m</span>
           </div>
           <input
             type="range"
@@ -96,19 +96,19 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ request, onSim
               setWalking(val);
               applyChanges(budget, val, transfers, costWeight, relWeight);
             }}
-            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+            className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
           />
-          <div className="flex justify-between text-[10px] text-slate-400">
+          <div className="flex justify-between text-[10px] text-slate-400 dark:text-slate-500">
             <span>200m</span>
             <span>2.5km</span>
           </div>
         </div>
 
         {/* Cost vs Reliability Trade-off */}
-        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-2">
+        <div className="bg-slate-50 dark:bg-slate-850 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-2">
           <div className="flex justify-between items-center text-xs">
-            <span className="text-slate-600 font-medium">Cost Priority Weight</span>
-            <span className="font-extrabold text-orange-600">{costWeight}%</span>
+            <span className="text-slate-600 dark:text-slate-400 font-medium">Cost Priority Weight</span>
+            <span className="font-extrabold text-orange-600 dark:text-orange-400">{costWeight}%</span>
           </div>
           <input
             type="range"
@@ -121,19 +121,19 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ request, onSim
               setCostWeight(val);
               applyChanges(budget, walking, transfers, val, relWeight);
             }}
-            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-orange-500"
+            className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-orange-500"
           />
-          <div className="flex justify-between text-[10px] text-slate-400">
+          <div className="flex justify-between text-[10px] text-slate-400 dark:text-slate-500">
             <span>0%</span>
             <span>100%</span>
           </div>
         </div>
 
         {/* Max Transfers Selector */}
-        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-2">
+        <div className="bg-slate-50 dark:bg-slate-850 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-2">
           <div className="flex justify-between items-center text-xs">
-            <span className="text-slate-600 font-medium">Transfer Allowance</span>
-            <span className="font-extrabold text-slate-900">{transfers} max</span>
+            <span className="text-slate-600 dark:text-slate-400 font-medium">Transfer Allowance</span>
+            <span className="font-extrabold text-slate-900 dark:text-white">{transfers} max</span>
           </div>
           <div className="grid grid-cols-4 gap-1.5 pt-1">
             {[0, 1, 2, 3].map((num) => (
@@ -147,7 +147,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ request, onSim
                 className={`py-1 rounded-lg text-xs font-bold border transition-all ${
                   transfers === num
                     ? 'bg-blue-600 text-white border-blue-600'
-                    : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
                 }`}
               >
                 {num === 3 ? '3+' : num}

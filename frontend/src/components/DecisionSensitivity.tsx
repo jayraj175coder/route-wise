@@ -31,14 +31,14 @@ export const DecisionSensitivity: React.FC<{ route: CandidateRoute }> = ({ route
   ];
 
   return (
-    <div className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-sm space-y-4">
-      <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-        <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+    <div className="bg-white dark:bg-[#0D1527] rounded-2xl p-6 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
+      <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400">
           <HelpCircle className="w-5 h-5" />
         </div>
         <div>
-          <h3 className="font-heading text-lg font-bold text-slate-900">What Could Change This Decision?</h3>
-          <p className="text-xs text-slate-500">
+          <h3 className="font-heading text-lg font-bold text-slate-900 dark:text-white">What Could Change This Decision?</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             Deterministic tipping-point thresholds that trigger an alternative recommendation
           </p>
         </div>
@@ -48,24 +48,24 @@ export const DecisionSensitivity: React.FC<{ route: CandidateRoute }> = ({ route
         {sensitivityThresholds.map((item, idx) => (
           <div
             key={idx}
-            className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2 hover:border-blue-300 transition-all"
+            className="p-4 rounded-xl bg-slate-50 dark:bg-slate-850 border border-slate-200/80 dark:border-slate-800 space-y-2 hover:border-blue-300 dark:hover:border-blue-700 transition-all"
           >
             <div className="flex items-center justify-between text-xs">
-              <span className="font-extrabold text-blue-700 font-mono flex items-center gap-1.5">
-                <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
+              <span className="font-extrabold text-blue-700 dark:text-blue-400 font-mono flex items-center gap-1.5">
+                <TrendingUp className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                 <span>{item.condition}</span>
               </span>
-              <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-white text-slate-500 border border-slate-200">
+              <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
                 Tipping Point
               </span>
             </div>
 
-            <p className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-              <ArrowUpRight className="w-3.5 h-3.5 text-orange-600 shrink-0" />
+            <p className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+              <ArrowUpRight className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400 shrink-0" />
               <span>{item.result}</span>
             </p>
 
-            <p className="text-[11px] text-slate-500 leading-relaxed border-t border-slate-200/60 pt-1.5">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed border-t border-slate-200/60 dark:border-slate-800 pt-1.5">
               {item.rationale}
             </p>
           </div>

@@ -12,10 +12,6 @@ import {
   IndianRupee,
   Route as RouteIcon,
   Shuffle,
-  Train,
-  Bus,
-  Car,
-  Footprints,
 } from 'lucide-react';
 
 interface InteractiveMapPanelProps {
@@ -25,7 +21,6 @@ interface InteractiveMapPanelProps {
 
 type MapMode = 'map' | 'satellite' | 'traffic';
 
-// Comprehensive coordinate registry for Mumbai Metropolitan Region & Western India
 const LOCATION_COORDINATES: Record<string, [number, number]> = {
   // Navi Mumbai & Trans-Harbour
   rabale: [19.1363, 72.9984],
@@ -136,10 +131,6 @@ export const InteractiveMapPanel: React.FC<InteractiveMapPanelProps> = ({
 
       mapInstanceRef.current = map;
     }
-
-    return () => {
-      // Map stays attached to container ref
-    };
   }, []);
 
   // Update Tile Layer based on mode
@@ -158,13 +149,11 @@ export const InteractiveMapPanel: React.FC<InteractiveMapPanelProps> = ({
         { maxZoom: 18 }
       );
     } else if (mapMode === 'traffic') {
-      // High contrast dark/traffic view
       newLayer = L.tileLayer(
         'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
         { maxZoom: 19 }
       );
     } else {
-      // Clean modern street map view
       newLayer = L.tileLayer(
         'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
         { maxZoom: 19 }
@@ -180,20 +169,18 @@ export const InteractiveMapPanel: React.FC<InteractiveMapPanelProps> = ({
     const map = mapInstanceRef.current;
     if (!map || !selectedRoute) return;
 
-    // Clear previous markers & polylines
+    // Clear previous layers
     map.eachLayer((layer) => {
       if (layer instanceof L.Marker || layer instanceof L.Polyline) {
         map.removeLayer(layer);
       }
     });
 
-    // 1. Gather coordinates along the route
-    const startCoord = resolveCoords(request.origin) || [19.1363, 72.9984]; // default Rabale
-    const destCoord = resolveCoords(request.destination) || [19.1972, 72.9722]; // default Thane
+    const startCoord = resolveCoords(request.origin) || [19.1363, 72.9984];
+    const destCoord = resolveCoords(request.destination) || [19.1972, 72.9722];
 
     const waypoints: [number, number][] = [startCoord];
 
-    // Inspect segments for intermediate stops
     if (selectedRoute.segments && selectedRoute.segments.length > 0) {
       selectedRoute.segments.forEach((seg) => {
         const fromC = resolveCoords(seg.from_name);
@@ -205,7 +192,6 @@ export const InteractiveMapPanel: React.FC<InteractiveMapPanelProps> = ({
 
     waypoints.push(destCoord);
 
-    // Remove duplicates while preserving order
     const uniquePoints: [number, number][] = [];
     waypoints.forEach((pt) => {
       if (
@@ -217,7 +203,6 @@ export const InteractiveMapPanel: React.FC<InteractiveMapPanelProps> = ({
       }
     });
 
-    // If Rabale to Thane direct rail, interpolate Airoli station for smooth path
     if (
       uniquePoints.length === 2 &&
       Math.abs(uniquePoints[0][0] - 19.1363) < 0.05 &&
@@ -226,8 +211,7 @@ export const InteractiveMapPanel: React.FC<InteractiveMapPanelProps> = ({
       uniquePoints.splice(1, 0, [19.1579, 72.9935]); // Airoli
     }
 
-    // 2. Draw Polyline (Glowing Luminous Blue Line as in screenshot)
-    // Background glow
+    // Polyline Glow
     L.polyline(uniquePoints, {
       color: '#00D2FF',
       weight: 8,
@@ -236,7 +220,7 @@ export const InteractiveMapPanel: React.FC<InteractiveMapPanelProps> = ({
       lineJoin: 'round',
     }).addTo(map);
 
-    // Foreground sharp line
+    // Polyline Main
     const routeLine = L.polyline(uniquePoints, {
       color: '#0099FF',
       weight: 5,
@@ -245,8 +229,7 @@ export const InteractiveMapPanel: React.FC<InteractiveMapPanelProps> = ({
       lineJoin: 'round',
     }).addTo(map);
 
-    // 3. Add Custom Markers
-    // Origin Marker (Green Pin with Inner Dot)
+    // Origin Marker
     const originIcon = L.divIcon({
       className: 'custom-origin-marker',
       html: `
@@ -272,7 +255,7 @@ export const InteractiveMapPanel: React.FC<InteractiveMapPanelProps> = ({
             "></div>
           </div>
           <div style="
-            background: rgba(15, 23, 42, 0.85);
+            background: rgba(15, 23, 42, 0.9);
             backdrop-filter: blur(4px);
             color: #FFFFFF;
             font-size: 11px;
@@ -295,7 +278,7 @@ export const InteractiveMapPanel: React.FC<InteractiveMapPanelProps> = ({
 
     L.marker(uniquePoints[0], { icon: originIcon }).addTo(map);
 
-    // Intermediate Transit Hub Markers (Blue Circular Badge with Mode Icon)
+    // Intermediate Transit Hub Markers
     for (let i = 1; i < uniquePoints.length - 1; i++) {
       const isRail =
         selectedRoute.mode_summary.toLowerCase().includes('train') ||
@@ -332,7 +315,7 @@ export const InteractiveMapPanel: React.FC<InteractiveMapPanelProps> = ({
       L.marker(uniquePoints[i], { icon: waypointIcon }).addTo(map);
     }
 
-    // Destination Marker (Red Pin with Inner Dot)
+    // Destination Marker
     const destIcon = L.divIcon({
       className: 'custom-dest-marker',
       html: `
@@ -380,7 +363,6 @@ export const InteractiveMapPanel: React.FC<InteractiveMapPanelProps> = ({
 
     L.marker(uniquePoints[uniquePoints.length - 1], { icon: destIcon }).addTo(map);
 
-    // 4. Fit Bounds with generous padding
     const bounds = routeLine.getBounds();
     setActiveBounds(bounds);
     map.fitBounds(bounds, {
@@ -414,17 +396,17 @@ export const InteractiveMapPanel: React.FC<InteractiveMapPanelProps> = ({
   const stagesCount = selectedRoute?.segments?.length || 3;
 
   return (
-    <div className="bg-[#0B1528] rounded-3xl overflow-hidden border border-slate-200/90 shadow-md flex flex-col relative h-[680px]">
+    <div className="bg-[#0B1528] dark:bg-[#070E1A] rounded-3xl overflow-hidden border border-slate-200/90 dark:border-slate-800 shadow-md flex flex-col relative h-[680px] transition-colors duration-200">
       {/* Top Floating Controls Bar */}
       <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
         {/* Layer Mode Toggle Pills */}
-        <div className="bg-white/95 backdrop-blur-md p-1 rounded-2xl shadow-lg border border-slate-200 flex items-center gap-1 pointer-events-auto">
+        <div className="bg-white/95 dark:bg-slate-900/90 backdrop-blur-md p-1 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 flex items-center gap-1 pointer-events-auto">
           <button
             onClick={() => setMapMode('map')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
               mapMode === 'map'
                 ? 'bg-[#FF6B00] text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
             <MapIcon className="w-3.5 h-3.5" />
@@ -435,7 +417,7 @@ export const InteractiveMapPanel: React.FC<InteractiveMapPanelProps> = ({
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
               mapMode === 'satellite'
                 ? 'bg-[#FF6B00] text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
             <Globe className="w-3.5 h-3.5" />
@@ -446,7 +428,7 @@ export const InteractiveMapPanel: React.FC<InteractiveMapPanelProps> = ({
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
               mapMode === 'traffic'
                 ? 'bg-[#FF6B00] text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
             <Radio className="w-3.5 h-3.5" />
@@ -459,22 +441,22 @@ export const InteractiveMapPanel: React.FC<InteractiveMapPanelProps> = ({
       <div className="absolute top-20 right-4 z-20 flex flex-col gap-2">
         <button
           onClick={handleRecenter}
-          className="w-9 h-9 rounded-xl bg-white shadow-md border border-slate-200 flex items-center justify-center text-slate-700 hover:text-blue-600 hover:bg-slate-50 transition-all active:scale-95"
+          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-800/90 shadow-md border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-95"
           title="Recenter Map"
         >
           <Crosshair className="w-4 h-4" />
         </button>
-        <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden flex flex-col">
+        <div className="bg-white dark:bg-slate-800/90 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col">
           <button
             onClick={handleZoomIn}
-            className="w-9 h-9 flex items-center justify-center text-slate-700 hover:text-blue-600 hover:bg-slate-50 transition-colors border-b border-slate-100"
+            className="w-9 h-9 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border-b border-slate-100 dark:border-slate-700"
             title="Zoom In"
           >
             <Plus className="w-4 h-4" />
           </button>
           <button
             onClick={handleZoomOut}
-            className="w-9 h-9 flex items-center justify-center text-slate-700 hover:text-blue-600 hover:bg-slate-50 transition-colors"
+            className="w-9 h-9 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
             title="Zoom Out"
           >
             <Minus className="w-4 h-4" />
@@ -490,53 +472,53 @@ export const InteractiveMapPanel: React.FC<InteractiveMapPanelProps> = ({
 
       {/* Bottom Floating "Total Journey" Card */}
       <div className="absolute bottom-4 left-4 right-4 z-20 pointer-events-auto">
-        <div className="bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border border-slate-200/90">
-          <div className="text-xs font-extrabold text-slate-900 mb-2">
+        <div className="bg-white/95 dark:bg-[#0D1527]/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border border-slate-200/90 dark:border-slate-800">
+          <div className="text-xs font-extrabold text-slate-900 dark:text-white mb-2">
             Total Journey
           </div>
-          <div className="grid grid-cols-4 gap-2 text-center divide-x divide-slate-100">
+          <div className="grid grid-cols-4 gap-2 text-center divide-x divide-slate-100 dark:divide-slate-800">
             {/* Total Time */}
             <div className="flex flex-col items-center">
-              <div className="w-6 h-6 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-1">
+              <div className="w-6 h-6 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-1">
                 <Clock className="w-3.5 h-3.5" />
               </div>
-              <span className="text-xs font-extrabold text-slate-900 leading-tight">
+              <span className="text-xs font-extrabold text-slate-900 dark:text-white leading-tight">
                 {Math.round(selectedRoute.total_duration_minutes)} min
               </span>
-              <span className="text-[10px] text-slate-500 font-medium">Total Time</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Total Time</span>
             </div>
 
             {/* Total Cost */}
             <div className="flex flex-col items-center">
-              <div className="w-6 h-6 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-1">
+              <div className="w-6 h-6 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-1">
                 <IndianRupee className="w-3.5 h-3.5" />
               </div>
-              <span className="text-xs font-extrabold text-slate-900 leading-tight">
+              <span className="text-xs font-extrabold text-slate-900 dark:text-white leading-tight">
                 ₹{Math.round(selectedRoute.estimated_cost)}
               </span>
-              <span className="text-[10px] text-slate-500 font-medium">Total Cost</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Total Cost</span>
             </div>
 
             {/* Stages */}
             <div className="flex flex-col items-center">
-              <div className="w-6 h-6 rounded-full bg-sky-50 text-sky-600 flex items-center justify-center mb-1">
+              <div className="w-6 h-6 rounded-full bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center mb-1">
                 <RouteIcon className="w-3.5 h-3.5" />
               </div>
-              <span className="text-xs font-extrabold text-slate-900 leading-tight">
+              <span className="text-xs font-extrabold text-slate-900 dark:text-white leading-tight">
                 {stagesCount}
               </span>
-              <span className="text-[10px] text-slate-500 font-medium">Stages</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Stages</span>
             </div>
 
             {/* Transfers */}
             <div className="flex flex-col items-center">
-              <div className="w-6 h-6 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center mb-1">
+              <div className="w-6 h-6 rounded-full bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-1">
                 <Shuffle className="w-3.5 h-3.5" />
               </div>
-              <span className="text-xs font-extrabold text-slate-900 leading-tight">
+              <span className="text-xs font-extrabold text-slate-900 dark:text-white leading-tight">
                 {selectedRoute.transfer_count}
               </span>
-              <span className="text-[10px] text-slate-500 font-medium">Transfers</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Transfers</span>
             </div>
           </div>
         </div>

@@ -59,6 +59,26 @@ export const App: React.FC = () => {
   const [hasDisruption, setHasDisruption] = useState<boolean>(false);
   const [showAdvancedTools, setShowAdvancedTools] = useState<boolean>(false);
 
+  // Dark mode state with persistence in localStorage
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('routewise-theme');
+      if (saved) return saved === 'dark';
+      return window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)').matches : false;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('routewise-theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('routewise-theme', 'light');
+    }
+  }, [isDarkMode]);
+
   const requestRef = useRef(request);
   useEffect(() => {
     requestRef.current = request;
@@ -187,7 +207,7 @@ export const App: React.FC = () => {
     : [];
 
   return (
-    <div className="min-h-screen bg-[#F0F4F8] text-slate-800 flex flex-col font-sans selection:bg-[#FF7A1A]/20 selection:text-slate-900">
+    <div className="min-h-screen bg-[#F0F4F8] dark:bg-[#070D18] text-slate-800 dark:text-slate-100 flex flex-col font-sans selection:bg-[#FF7A1A]/20 selection:text-slate-900 transition-colors duration-200">
       {/* Navbar with exact tabs */}
       <Navbar
         apiConnected={true}
@@ -196,6 +216,8 @@ export const App: React.FC = () => {
         onRefresh={() => handleRunOptimize()}
         onTogglePreferences={() => setIsPreferencesOpen(!isPreferencesOpen)}
         isPreferencesOpen={isPreferencesOpen}
+        isDarkMode={isDarkMode}
+        onToggleDarkMode={() => setIsDarkMode((prev) => !prev)}
       />
 
       {/* Main 3-Column Layout */}
@@ -235,29 +257,29 @@ export const App: React.FC = () => {
                 onOpenScoreModal={() => setIsScoreModalOpen(true)}
               />
             ) : (
-              <div className="bg-white rounded-3xl border border-slate-200 p-10 text-center space-y-4 shadow-sm animate-pulse">
-                <div className="w-12 h-12 bg-slate-200 rounded-2xl mx-auto" />
-                <div className="h-5 bg-slate-200 rounded w-1/3 mx-auto" />
-                <div className="h-4 bg-slate-100 rounded w-1/2 mx-auto" />
-                <div className="h-72 bg-slate-100 rounded-2xl mt-6" />
+              <div className="bg-white dark:bg-[#0D1527] rounded-3xl border border-slate-200 dark:border-slate-800 p-10 text-center space-y-4 shadow-sm animate-pulse">
+                <div className="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded-2xl mx-auto" />
+                <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded w-1/3 mx-auto" />
+                <div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-1/2 mx-auto" />
+                <div className="h-72 bg-slate-100 dark:bg-slate-800 rounded-2xl mt-6" />
               </div>
             )}
 
             {/* Advanced Decision Tools Collapsible */}
-            <div className="border-t border-slate-200/60 pt-1">
+            <div className="border-t border-slate-200/60 dark:border-slate-800 pt-1">
               <button
                 onClick={() => setShowAdvancedTools(!showAdvancedTools)}
-                className="flex items-center justify-between w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 shadow-xs hover:bg-slate-50 transition-all text-left"
+                className="flex items-center justify-between w-full px-4 py-3 rounded-2xl bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-slate-800 shadow-xs hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all text-left"
               >
                 <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <div className="w-7 h-7 rounded-xl bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                     <SlidersHorizontal className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-slate-900">
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white">
                       Advanced: What-If Stress Testing & Sensitivity Radar
                     </h4>
-                    <p className="text-[11px] text-slate-500">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
                       Simulate rain delays, road blockages, and test decision stability
                     </p>
                   </div>
@@ -270,7 +292,7 @@ export const App: React.FC = () => {
               </button>
 
               {showAdvancedTools && currentRoute && (
-                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4 bg-white dark:bg-[#0D1527] p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
                   <DecisionSensitivity route={currentRoute} />
                   <WhatIfSimulator
                     request={request}
@@ -330,10 +352,10 @@ export const App: React.FC = () => {
       {isPreferencesOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div
-            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/40 backdrop-blur-xs transition-opacity"
             onClick={() => setIsPreferencesOpen(false)}
           />
-          <div className="relative z-50 w-full max-w-sm bg-white shadow-2xl h-full overflow-y-auto">
+          <div className="relative z-50 w-full max-w-sm bg-white dark:bg-[#0D1527] shadow-2xl h-full overflow-y-auto border-l border-slate-200 dark:border-slate-800">
             <TravelerPreferencesSidebar
               isOpen={isPreferencesOpen}
               onClose={() => setIsPreferencesOpen(false)}
