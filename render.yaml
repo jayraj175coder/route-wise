@@ -1,0 +1,12 @@
+services:
+  # RouteWise Full-Stack Web Service (FastAPI + React Frontend)
+  - type: web
+    name: routewise
+    runtime: python
+    buildCommand: npm --prefix frontend install && VITE_API_URL=/api npm --prefix frontend run build && pip install -r backend/requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --app-dir backend
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11
+      - key: SERPAPI_API_KEY
+        sync: false
