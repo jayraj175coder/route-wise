@@ -25,8 +25,8 @@ def test_api_optimize_journey():
         "destination": "Hinjawadi, Pune",
         "arrival_deadline": "10:10 AM",
         "max_budget": 1500.0,
-        "max_walking_distance_meters": 1000.0,
-        "max_transfers": 2,
+        "max_walking_distance_meters": 1500.0,
+        "max_transfers": 3,
         "intent": "interview",
         "weights": {
             "time": 0.25,

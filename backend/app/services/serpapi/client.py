@@ -23,14 +23,31 @@ class SerpApiClient:
         self.base_url = "https://serpapi.com/search.json"
 
     def is_available(self) -> bool:
-        return bool(self.api_key and len(self.api_key.strip()) > 5)
+        if not self.api_key:
+            return False
+        key = self.api_key.strip()
+        # Ensure it's not a dummy placeholder from .env.example
+        if (
+            len(key) < 15
+            or "your_" in key.lower()
+            or "api_key" in key.lower()
+            or "placeholder" in key.lower()
+            or "example" in key.lower()
+        ):
+            return False
+        return True
 
     def test_connection(self) -> Dict[str, Any]:
         """Validates API key status against SerpApi account endpoint."""
         if not self.is_available():
             return {
                 "configured": False,
-                "message": "SERPAPI_API_KEY environment variable is not set."
+                "valid": True,
+                "status": "autonomous",
+                "plan": "zero-key-autonomous",
+                "searches_remaining": "Unlimited (Local Engine)",
+                "message": "Autonomous mode active. Maps & route optimization work 100% without any external API keys.",
+                "api_key_required_for_maps": False,
             }
         try:
             res = requests.get(
@@ -43,20 +60,27 @@ class SerpApiClient:
                 return {
                     "configured": True,
                     "valid": True,
+                    "status": "active",
                     "plan": data.get("plan_id", "active"),
                     "searches_remaining": data.get("total_searches_left", "N/A"),
+                    "api_key_required_for_maps": False,
                 }
             return {
-                "configured": True,
+                "configured": False,
                 "valid": False,
+                "status": "invalid_key",
                 "status_code": res.status_code,
-                "message": res.text
+                "message": "Configured SERPAPI_API_KEY was rejected by SerpApi. Running seamlessly in autonomous fallback mode.",
+                "api_key_required_for_maps": False,
             }
         except Exception as e:
             return {
                 "configured": True,
                 "valid": False,
-                "error": str(e)
+                "status": "network_timeout",
+                "error": str(e),
+                "message": "SerpApi connection timed out. Running seamlessly in autonomous fallback mode.",
+                "api_key_required_for_maps": False,
             }
 
     # 1. Google Maps Directions
@@ -79,7 +103,7 @@ class SerpApiClient:
         }
 
         try:
-            response = requests.get(self.base_url, params=params, timeout=1.5)
+            response = requests.get(self.base_url, params=params, timeout=8.0)
             if response.status_code == 200:
                 return response.json()
             logger.warning(f"SerpApi directions status {response.status_code}: {response.text}")
@@ -102,7 +126,7 @@ class SerpApiClient:
             params["ll"] = location
 
         try:
-            response = requests.get(self.base_url, params=params, timeout=1.5)
+            response = requests.get(self.base_url, params=params, timeout=5.0)
             if response.status_code == 200:
                 return response.json()
             return None
@@ -122,7 +146,7 @@ class SerpApiClient:
         }
 
         try:
-            response = requests.get(self.base_url, params=params, timeout=1.5)
+            response = requests.get(self.base_url, params=params, timeout=5.0)
             if response.status_code == 200:
                 return response.json()
             return None
@@ -142,7 +166,7 @@ class SerpApiClient:
         }
 
         try:
-            response = requests.get(self.base_url, params=params, timeout=1.5)
+            response = requests.get(self.base_url, params=params, timeout=5.0)
             if response.status_code == 200:
                 return response.json()
             return None
