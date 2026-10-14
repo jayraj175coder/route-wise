@@ -137,8 +137,8 @@ function resolveCoords(name: string): [number, number] | null {
 
 const SCANNING_STEPS = [
   '🛰️ Triangulating multi-modal route corridors...',
-  '🚆 Polling Mumbai Suburban train timetable & delays...',
-  '🚗 Analyzing live Western & Eastern Express traffic...',
+  '🚆 Polling live transit timetables & delay feeds...',
+  '🚗 Analyzing real-time road & traffic conditions...',
   '⚡ Balancing Pareto frontier (Time vs Cost vs Risk)...',
   '🎯 Finalizing optimal itinerary for you...',
 ];
@@ -169,7 +169,7 @@ export const InteractiveMapPanel: React.FC<InteractiveMapPanelProps> = ({
 
     if (!mapInstanceRef.current) {
       const map = L.map(mapContainerRef.current, {
-        center: [19.16, 72.98],
+        center: [20.5937, 78.9629], // India center fallback
         zoom: 12,
         zoomControl: false,
         attributionControl: false,
@@ -230,8 +230,8 @@ export const InteractiveMapPanel: React.FC<InteractiveMapPanelProps> = ({
       }
     });
 
-    const startCoord = resolveCoords(request.origin) || [19.1363, 72.9984];
-    const destCoord = resolveCoords(request.destination) || [19.1972, 72.9722];
+    const startCoord = resolveCoords(request.origin) || [20.5937, 78.9629];
+    const destCoord = resolveCoords(request.destination) || [20.5937, 78.9629];
 
     const waypoints: [number, number][] = [startCoord];
 
@@ -257,13 +257,7 @@ export const InteractiveMapPanel: React.FC<InteractiveMapPanelProps> = ({
       }
     });
 
-    if (
-      uniquePoints.length === 2 &&
-      Math.abs(uniquePoints[0][0] - 19.1363) < 0.05 &&
-      Math.abs(uniquePoints[1][0] - 19.1972) < 0.05
-    ) {
-      uniquePoints.splice(1, 0, [19.1579, 72.9935]); // Airoli
-    }
+    // (no forced waypoint injection — only use what's resolved from actual segments)
 
     // Polyline Glow
     L.polyline(uniquePoints, {

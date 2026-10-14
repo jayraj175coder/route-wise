@@ -61,14 +61,74 @@ export const RightResultsDashboard: React.FC<RightResultsDashboardProps> = ({
   const bufferMins = route.arrival_buffer_minutes || 42;
   const budgetSaved = Math.max(0, request.max_budget - route.estimated_cost);
 
-  // Initialize and update Leaflet Map
+  // Resolve lat/lng from a location name string via session cache or lat,lng format
+  const resolveCoords = (name: string): [number, number] | null => {
+    if (!name) return null;
+    const lower = name.toLowerCase().trim();
+    // Direct "lat, lon" format
+    const commaMatch = lower.match(/^([-+]?[0-9]*\.?[0-9]+)\s*,\s*([-+]?[0-9]*\.?[0-9]+)$/);
+    if (commaMatch) {
+      const lat = parseFloat(commaMatch[1]);
+      const lon = parseFloat(commaMatch[2]);
+      if (!isNaN(lat) && !isNaN(lon)) return [lat, lon];
+    }
+    // Session storage fallback
+    try {
+      const cached = sessionStorage.getItem('routewise_user_coords');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed.name && (lower.includes(parsed.name.toLowerCase()) || lower.includes('current location'))) {
+          return [parsed.latitude, parsed.longitude];
+        }
+      }
+    } catch (_) {}
+    return null;
+  };
+
+  // Initialize and update Leaflet Map dynamically from route segments
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
+    // Build waypoints from route segments
+    const segments = route.segments || [];
+    const waypoints: Array<{ coord: [number, number]; label: string; isTransfer: boolean }> = [];
+
+    // Collect all named points from segments
+    const allPoints: Array<{ name: string; isFrom: boolean }> = [];
+    segments.forEach((seg, idx) => {
+      if (idx === 0) allPoints.push({ name: seg.from_name, isFrom: true });
+      allPoints.push({ name: seg.to_name, isFrom: false });
+    });
+
+    allPoints.forEach((pt, idx) => {
+      const coord = resolveCoords(pt.name);
+      if (coord) {
+        waypoints.push({
+          coord,
+          label: pt.name.split(',')[0],
+          isTransfer: idx > 0 && idx < allPoints.length - 1,
+        });
+      }
+    });
+
+    // Deduplicate nearby points
+    const unique: typeof waypoints = [];
+    waypoints.forEach((wp) => {
+      if (!unique.some((u) => Math.abs(u.coord[0] - wp.coord[0]) < 0.001 && Math.abs(u.coord[1] - wp.coord[1]) < 0.001)) {
+        unique.push(wp);
+      }
+    });
+
+    // Determine map center — fallback to midpoint of origin/dest if no coords resolved
+    const defaultCenter: [number, number] = [20.5937, 78.9629]; // India center
+    const mapCenter: [number, number] = unique.length > 0
+      ? unique[Math.floor(unique.length / 2)].coord
+      : defaultCenter;
+
     if (!mapInstanceRef.current) {
       const map = L.map(mapContainerRef.current, {
-        center: [18.75, 73.35],
-        zoom: 9,
+        center: mapCenter,
+        zoom: unique.length > 1 ? 9 : 5,
         zoomControl: false,
         attributionControl: false,
       });
@@ -76,8 +136,8 @@ export const RightResultsDashboard: React.FC<RightResultsDashboardProps> = ({
       const layer = L.tileLayer(
         mapMode === 'satellite'
           ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-          : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        { maxZoom: 18 }
+          : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+        { maxZoom: 19 }
       ).addTo(map);
 
       tileLayerRef.current = layer;
@@ -90,8 +150,8 @@ export const RightResultsDashboard: React.FC<RightResultsDashboardProps> = ({
       const newLayer = L.tileLayer(
         mapMode === 'satellite'
           ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-          : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        { maxZoom: 18 }
+          : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+        { maxZoom: 19 }
       ).addTo(mapInstanceRef.current);
       tileLayerRef.current = newLayer;
     }
@@ -105,132 +165,104 @@ export const RightResultsDashboard: React.FC<RightResultsDashboardProps> = ({
       }
     });
 
-    // 1. Train segment (Dadar to Pune)
-    const trainCoords: L.LatLngExpression[] = [
-      [19.0178, 72.8478], // Dadar
-      [19.033, 73.0297],  // Navi Mumbai
-      [18.7525, 73.3718], // Lonavala / Ghat
-      [18.5284, 73.8744], // Pune Station
-    ];
+    if (unique.length < 2) {
+      // Not enough coords resolved — show generic center
+      map.setView(mapCenter, 5);
+      return;
+    }
 
-    L.polyline(trainCoords, {
-      color: '#2563EB', // Blue
-      weight: 4.5,
-      opacity: 0.9,
-    }).addTo(map);
+    const coords = unique.map((wp) => wp.coord);
 
-    // 2. Auto / Cab segment (Pune to Hinjawadi)
-    const autoCoords: L.LatLngExpression[] = [
-      [18.5284, 73.8744], // Pune Station
-      [18.5679, 73.8016], // Baner
-      [18.5913, 73.7389], // Hinjawadi Phase 1
-    ];
+    // Draw route polyline
+    L.polyline(coords, { color: '#2563EB', weight: 4.5, opacity: 0.9 }).addTo(map);
 
-    L.polyline(autoCoords, {
-      color: '#F97316', // Orange
-      weight: 4.5,
-      opacity: 0.9,
-      dashArray: '3, 6',
-    }).addTo(map);
-
-    // Pin 1: Dadar Origin
+    // Origin marker
+    const originLabel = unique[0].label;
     const originIcon = L.divIcon({
-      className: 'custom-pin-dadar',
+      className: 'custom-pin-origin',
       html: `
         <div style="display:flex; align-items:center; gap:4px; transform:translate(-20px, -12px); white-space:nowrap;">
           <div style="background:#2563EB; width:14px; height:14px; border-radius:50%; border:2px solid white; box-shadow:0 1px 4px rgba(0,0,0,0.3);"></div>
-          <span style="background:white; padding:1px 6px; border-radius:4px; font-size:10px; font-weight:700; color:#1E293B; box-shadow:0 1px 3px rgba(0,0,0,0.2);">Dadar, Mumbai</span>
+          <span style="background:white; padding:1px 6px; border-radius:4px; font-size:10px; font-weight:700; color:#1E293B; box-shadow:0 1px 3px rgba(0,0,0,0.2);">${originLabel}</span>
         </div>
       `,
       iconSize: [20, 20],
     });
-    L.marker([19.0178, 72.8478], { icon: originIcon }).addTo(map);
+    L.marker(unique[0].coord, { icon: originIcon }).addTo(map);
 
-    // Pin 2: Pune Junction Transfer
-    const transferIcon = L.divIcon({
-      className: 'custom-pin-pune',
-      html: `
-        <div style="display:flex; align-items:center; gap:4px; transform:translate(-10px, -10px); white-space:nowrap;">
-          <div style="background:#334155; width:12px; height:12px; border-radius:50%; border:2px solid white; box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>
-          <span style="background:white; padding:1px 6px; border-radius:4px; font-size:10px; font-weight:700; color:#1E293B; box-shadow:0 1px 3px rgba(0,0,0,0.2);">Pune</span>
-        </div>
-      `,
-      iconSize: [16, 16],
-    });
-    L.marker([18.5284, 73.8744], { icon: transferIcon }).addTo(map);
+    // Intermediate transfer markers
+    for (let i = 1; i < unique.length - 1; i++) {
+      const transferIcon = L.divIcon({
+        className: 'custom-pin-transfer',
+        html: `
+          <div style="display:flex; align-items:center; gap:4px; transform:translate(-10px, -10px); white-space:nowrap;">
+            <div style="background:#334155; width:12px; height:12px; border-radius:50%; border:2px solid white; box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>
+            <span style="background:white; padding:1px 6px; border-radius:4px; font-size:10px; font-weight:700; color:#1E293B; box-shadow:0 1px 3px rgba(0,0,0,0.2);">${unique[i].label}</span>
+          </div>
+        `,
+        iconSize: [16, 16],
+      });
+      L.marker(unique[i].coord, { icon: transferIcon }).addTo(map);
+    }
 
-    // Pin 3: Hinjawadi Destination
+    // Destination marker
+    const destLabel = unique[unique.length - 1].label;
     const destIcon = L.divIcon({
       className: 'custom-pin-dest',
       html: `
         <div style="display:flex; flex-direction:column; align-items:center; transform:translate(-50%, -100%);">
-          <span style="background:white; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700; color:#DC2626; box-shadow:0 1px 4px rgba(0,0,0,0.2); margin-bottom:2px; white-space:nowrap;">Hinjawadi Phase 1, Pune</span>
+          <span style="background:white; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700; color:#DC2626; box-shadow:0 1px 4px rgba(0,0,0,0.2); margin-bottom:2px; white-space:nowrap;">${destLabel}</span>
           <div style="background:#DC2626; width:16px; height:16px; border-radius:50% 50% 50% 0; transform:rotate(-45deg); border:2px solid white; box-shadow:0 2px 5px rgba(0,0,0,0.3);"></div>
         </div>
       `,
       iconSize: [24, 24],
     });
-    L.marker([18.5913, 73.7389], { icon: destIcon }).addTo(map);
+    L.marker(unique[unique.length - 1].coord, { icon: destIcon }).addTo(map);
 
-    // Fit bounds
-    map.fitBounds([
-      [19.05, 72.8],
-      [18.5, 73.9],
-    ]);
+    // Fit bounds to all waypoints
+    const bounds = L.latLngBounds(coords);
+    map.fitBounds(bounds, { padding: [20, 20] });
   }, [mapMode, route]);
 
-  // Build 4 alternative options matching screenshot
+  // Build candidate cards from actual API routes
   const allRoutes = [
     route,
     ...(optimizationResult.alternative_routes || []),
   ];
 
-  const candidateCards = [
-    {
-      type: 'best' as const,
-      badgeText: 'Best for you',
-      badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-      title: 'Train + Auto',
-      price: 820,
-      duration: '3h 12m',
-      transfers: '1 transfer',
-      icons: ['train', 'auto'],
-      routeObj: allRoutes[0] || route,
-    },
-    {
-      type: 'cheapest' as const,
-      badgeText: 'Cheapest',
-      badgeColor: 'bg-blue-100 text-blue-800 border-blue-200',
-      title: 'Train + Auto',
-      price: 760,
-      duration: '3h 28m',
-      transfers: '1 transfer',
-      icons: ['train', 'auto'],
-      routeObj: allRoutes[1] || route,
-    },
-    {
-      type: 'fastest' as const,
-      badgeText: 'Fastest',
-      badgeColor: 'bg-purple-100 text-purple-800 border-purple-200',
-      title: 'Cab',
-      price: 1450,
-      duration: '2h 45m',
-      transfers: '0 transfer',
-      icons: ['car'],
-      routeObj: allRoutes[2] || route,
-    },
-    {
-      type: 'reliable' as const,
-      badgeText: 'Most Reliable',
-      badgeColor: 'bg-teal-100 text-teal-800 border-teal-200',
-      title: 'Rail',
-      price: 920,
-      duration: '3h 10m',
-      transfers: '1 transfer',
-      icons: ['train'],
-      routeObj: allRoutes[3] || route,
-    },
+  const CARD_META: Array<{
+    type: string;
+    badgeText: string;
+    badgeColor: string;
+    preferredRouteType: string;
+  }> = [
+    { type: 'best', badgeText: 'Best for you', badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200', preferredRouteType: 'best_fit' },
+    { type: 'cheapest', badgeText: 'Cheapest', badgeColor: 'bg-blue-100 text-blue-800 border-blue-200', preferredRouteType: 'cheapest' },
+    { type: 'fastest', badgeText: 'Fastest', badgeColor: 'bg-purple-100 text-purple-800 border-purple-200', preferredRouteType: 'fastest' },
+    { type: 'reliable', badgeText: 'Most Reliable', badgeColor: 'bg-teal-100 text-teal-800 border-teal-200', preferredRouteType: 'most_reliable' },
   ];
+
+  const candidateCards = CARD_META.map((meta, idx) => {
+    // Find a route matching the preferred type, fallback to index
+    const matchedRoute =
+      allRoutes.find((r) => r.route_type === meta.preferredRouteType) ||
+      allRoutes[idx] ||
+      route;
+    const modeIcons = (matchedRoute.mode_summary || '')
+      .toLowerCase()
+      .includes('train') ? (matchedRoute.mode_summary.toLowerCase().includes('auto') || matchedRoute.mode_summary.toLowerCase().includes('cab') ? ['train', 'auto'] : ['train'])
+      : matchedRoute.mode_summary?.toLowerCase().includes('cab') || matchedRoute.mode_summary?.toLowerCase().includes('driving') ? ['car']
+      : ['train', 'auto'];
+    return {
+      ...meta,
+      title: matchedRoute.mode_summary,
+      price: Math.round(matchedRoute.estimated_cost),
+      duration: formatDuration(matchedRoute.total_duration_minutes),
+      transfers: `${matchedRoute.transfer_count} transfer${matchedRoute.transfer_count !== 1 ? 's' : ''}`,
+      icons: modeIcons,
+      routeObj: matchedRoute,
+    };
+  });
 
   return (
     <div className="space-y-4">
@@ -369,67 +401,59 @@ export const RightResultsDashboard: React.FC<RightResultsDashboardProps> = ({
           </div>
         </div>
 
-        {/* Horizontal Timeline Progression Bar */}
+        {/* Horizontal Timeline Progression Bar — dynamic from segments */}
         <div className="pt-3 border-t border-slate-100">
           <div className="flex items-center justify-between text-xs font-medium text-slate-600 relative overflow-x-auto pb-1">
             {/* Departure */}
             <div className="shrink-0 flex items-center gap-2 pr-3">
               <div className="text-left">
-                <div className="font-bold text-slate-900">{route.departure_time || '6:05 AM'}</div>
-                <div className="text-[11px] text-slate-500">Dadar</div>
-                <div className="text-[10px] text-slate-400">Board train</div>
+                <div className="font-bold text-slate-900">{route.departure_time || '—'}</div>
+                <div className="text-[11px] text-slate-500 max-w-[80px] truncate">
+                  {(route.segments?.[0]?.from_name || request.origin).split(',')[0]}
+                </div>
+                <div className="text-[10px] text-slate-400">Depart</div>
               </div>
               <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0">
                 <Train className="w-3.5 h-3.5" />
               </div>
             </div>
 
-            {/* Segment 1 line */}
-            <div className="flex-1 min-w-[120px] mx-2 flex flex-col items-center">
-              <div className="text-[10px] text-slate-500 font-semibold mb-1 text-center truncate max-w-full">
-                2h 40m
-              </div>
-              <div className="w-full h-1 bg-blue-600 rounded-full relative">
-                <div className="w-2.5 h-2.5 rounded-full bg-blue-600 absolute right-0 top-1/2 -translate-y-1/2" />
-              </div>
-              <div className="text-[10px] text-slate-400 mt-1 truncate max-w-full">
-                Intercity Train (Dadar → Pune)
-              </div>
-            </div>
-
-            {/* Transfer Node */}
-            <div className="shrink-0 px-2 flex flex-col items-center">
-              <div className="w-4 h-4 rounded-full border border-slate-300 flex items-center justify-center text-slate-400 text-[9px] mb-0.5">
-                ⇄
-              </div>
-              <div className="text-[10px] text-slate-500 font-bold whitespace-nowrap">1 transfer</div>
-              <div className="text-[9px] text-slate-400">12m</div>
-            </div>
-
-            {/* Segment 2 line */}
-            <div className="flex-1 min-w-[100px] mx-2 flex flex-col items-center">
-              <div className="text-[10px] text-slate-500 font-semibold mb-1 text-center truncate max-w-full">
-                20m
-              </div>
-              <div className="w-full h-1 bg-slate-200 rounded-full relative">
-                <div className="w-full h-full bg-amber-500 rounded-full" />
-              </div>
-              <div className="text-[10px] text-slate-400 mt-1 truncate max-w-full">
-                Auto / Cab (Pune → Hinjawadi)
-              </div>
-            </div>
+            {/* Dynamic Segments */}
+            {(route.segments || []).map((seg, idx) => {
+              const isLastSeg = idx === (route.segments?.length ?? 0) - 1;
+              const segColor = seg.mode === 'walking' ? '#F97316' : seg.mode === 'train' || seg.mode === 'metro' ? '#2563EB' : '#F59E0B';
+              return (
+                <React.Fragment key={seg.id || idx}>
+                  <div className="flex-1 min-w-[80px] mx-1 flex flex-col items-center">
+                    <div className="text-[10px] text-slate-500 font-semibold mb-1 text-center">
+                      {Math.round(seg.duration_minutes)}m
+                    </div>
+                    <div className="w-full h-1 rounded-full relative" style={{ backgroundColor: `${segColor}33` }}>
+                      <div className="h-full rounded-full" style={{ backgroundColor: segColor }} />
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-1 truncate max-w-full text-center">
+                      {seg.mode.charAt(0).toUpperCase() + seg.mode.slice(1)} ({seg.from_name.split(',')[0]} → {seg.to_name.split(',')[0]})
+                    </div>
+                  </div>
+                  {!isLastSeg && route.transfer_count > 0 && (
+                    <div className="shrink-0 px-1 flex flex-col items-center">
+                      <div className="w-4 h-4 rounded-full border border-slate-300 flex items-center justify-center text-slate-400 text-[9px] mb-0.5">⇄</div>
+                    </div>
+                  )}
+                </React.Fragment>
+              );
+            })}
 
             {/* Destination Node */}
             <div className="shrink-0 flex items-center gap-2 pl-3">
-              <div className="w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0">
-                <Car className="w-3.5 h-3.5" />
-              </div>
               <div className="w-3 h-3 rounded-full bg-rose-500 text-white flex items-center justify-center mx-1">
                 <MapPin className="w-2 h-2" />
               </div>
               <div className="text-left">
-                <div className="font-bold text-slate-900">{route.arrival_time || '8:48 AM'}</div>
-                <div className="text-[11px] text-slate-500">Hinjawadi</div>
+                <div className="font-bold text-slate-900">{route.arrival_time || '—'}</div>
+                <div className="text-[11px] text-slate-500 max-w-[80px] truncate">
+                  {(route.segments?.[route.segments.length - 1]?.to_name || request.destination).split(',')[0]}
+                </div>
               </div>
             </div>
           </div>
@@ -555,70 +579,41 @@ export const RightResultsDashboard: React.FC<RightResultsDashboardProps> = ({
             RouteWise Score Breakdown
           </h4>
 
-          <div className="space-y-2 text-xs">
-            {/* Time: 88 */}
-            <div className="flex items-center justify-between">
-              <span className="text-slate-600 text-[11px] w-20">Time</span>
-              <div className="flex-1 mx-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-600 rounded-full" style={{ width: '88%' }} />
+          {/* Dynamic Score Breakdown from route.score_breakdown */}
+          {(() => {
+            const sb = route.score_breakdown;
+            const overall = Math.round(route.overall_score || route.confidence_score * 100 || 88);
+            const scoreRows: Array<{ label: string; value: number; color: string }> = sb ? [
+              { label: 'Time', value: Math.round(sb.time_score), color: 'bg-blue-600' },
+              { label: 'Cost', value: Math.round(sb.cost_score), color: 'bg-blue-600' },
+              { label: 'Reliability', value: Math.round(sb.reliability_score), color: 'bg-teal-600' },
+              { label: 'Walking', value: Math.round(sb.walking_score), color: 'bg-teal-600' },
+              { label: 'Transfers', value: Math.round(sb.transfer_score), color: 'bg-teal-600' },
+              { label: 'Arrival buffer', value: Math.round(sb.buffer_score), color: 'bg-amber-500' },
+              { label: 'Disruption risk', value: Math.round(sb.risk_score), color: 'bg-sky-500' },
+            ] : [
+              { label: 'Time', value: overall, color: 'bg-blue-600' },
+              { label: 'Cost', value: Math.min(99, overall + 6), color: 'bg-blue-600' },
+              { label: 'Reliability', value: Math.min(99, overall + 3), color: 'bg-teal-600' },
+              { label: 'Walking', value: Math.min(99, overall + 2), color: 'bg-teal-600' },
+              { label: 'Transfers', value: Math.min(99, overall + 4), color: 'bg-teal-600' },
+              { label: 'Arrival buffer', value: Math.min(99, overall + 7), color: 'bg-amber-500' },
+              { label: 'Disruption risk', value: Math.max(70, overall - 1), color: 'bg-sky-500' },
+            ];
+            return (
+              <div className="space-y-2 text-xs">
+                {scoreRows.map((row) => (
+                  <div key={row.label} className="flex items-center justify-between">
+                    <span className="text-slate-600 text-[11px] w-20">{row.label}</span>
+                    <div className="flex-1 mx-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div className={`h-full ${row.color} rounded-full`} style={{ width: `${row.value}%` }} />
+                    </div>
+                    <span className="font-bold text-slate-800 text-[11px] w-5 text-right">{row.value}</span>
+                  </div>
+                ))}
               </div>
-              <span className="font-bold text-slate-800 text-[11px] w-5 text-right">88</span>
-            </div>
-
-            {/* Cost: 94 */}
-            <div className="flex items-center justify-between">
-              <span className="text-slate-600 text-[11px] w-20">Cost</span>
-              <div className="flex-1 mx-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-600 rounded-full" style={{ width: '94%' }} />
-              </div>
-              <span className="font-bold text-slate-800 text-[11px] w-5 text-right">94</span>
-            </div>
-
-            {/* Reliability: 91 */}
-            <div className="flex items-center justify-between">
-              <span className="text-slate-600 text-[11px] w-20">Reliability</span>
-              <div className="flex-1 mx-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-teal-600 rounded-full" style={{ width: '91%' }} />
-              </div>
-              <span className="font-bold text-slate-800 text-[11px] w-5 text-right">91</span>
-            </div>
-
-            {/* Walking: 90 */}
-            <div className="flex items-center justify-between">
-              <span className="text-slate-600 text-[11px] w-20">Walking</span>
-              <div className="flex-1 mx-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-teal-600 rounded-full" style={{ width: '90%' }} />
-              </div>
-              <span className="font-bold text-slate-800 text-[11px] w-5 text-right">90</span>
-            </div>
-
-            {/* Transfers: 92 */}
-            <div className="flex items-center justify-between">
-              <span className="text-slate-600 text-[11px] w-20">Transfers</span>
-              <div className="flex-1 mx-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-teal-600 rounded-full" style={{ width: '92%' }} />
-              </div>
-              <span className="font-bold text-slate-800 text-[11px] w-5 text-right">92</span>
-            </div>
-
-            {/* Arrival buffer: 95 */}
-            <div className="flex items-center justify-between">
-              <span className="text-slate-600 text-[11px] w-20">Arrival buffer</span>
-              <div className="flex-1 mx-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-amber-500 rounded-full" style={{ width: '95%' }} />
-              </div>
-              <span className="font-bold text-slate-800 text-[11px] w-5 text-right">95</span>
-            </div>
-
-            {/* Disruption risk: 87 */}
-            <div className="flex items-center justify-between">
-              <span className="text-slate-600 text-[11px] w-20">Disruption risk</span>
-              <div className="flex-1 mx-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-sky-500 rounded-full" style={{ width: '87%' }} />
-              </div>
-              <span className="font-bold text-slate-800 text-[11px] w-5 text-right">87</span>
-            </div>
-          </div>
+            );
+          })()}
         </div>
 
         {/* Card 3: Live Intelligence */}
