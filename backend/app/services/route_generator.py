@@ -46,7 +46,7 @@ KNOWN_LOCATIONS = {
     "lonavala": (18.7525, 73.3718),
     "khandala": (18.7617, 73.3644),
 
-    # Major Indian Cities
+    # Major Indian Cities & Hubs
     "delhi": (28.6139, 77.2090),
     "new delhi": (28.6139, 77.2090),
     "gurgaon": (28.4595, 77.0266),
@@ -59,8 +59,28 @@ KNOWN_LOCATIONS = {
     "kolkata": (22.5726, 88.3639),
     "ahmedabad": (23.0225, 72.5714),
     "jaipur": (26.9124, 75.7873),
+    "surat": (21.1702, 72.8311),
+    "lucknow": (26.8467, 80.9462),
+    "kanpur": (26.4499, 80.3319),
+    "nagpur": (21.1458, 79.0882),
+    "indore": (22.7196, 75.8577),
+    "bhopal": (23.2599, 77.4126),
+    "visakhapatnam": (17.6868, 83.2185),
+    "patna": (25.5941, 85.1376),
+    "vadodara": (22.3072, 73.1812),
+    "ludhiana": (30.9010, 75.8573),
+    "agra": (27.1767, 78.0081),
+    "nashik": (19.9975, 73.7898),
+    "varanasi": (25.3176, 82.9739),
+    "amritsar": (31.6340, 74.8723),
+    "chandigarh": (30.7333, 76.7794),
+    "coimbatore": (11.0168, 76.9558),
+    "kochi": (9.9312, 76.2673),
+    "bhubaneswar": (20.2961, 85.8245),
+    "guwahati": (26.1445, 91.7362),
     "goa": (15.2993, 74.1240),
 }
+
 
 def find_coords(place_str: str) -> Optional[Tuple[float, float]]:
     lower = place_str.lower()
