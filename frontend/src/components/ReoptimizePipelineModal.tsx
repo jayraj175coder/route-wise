@@ -7,12 +7,12 @@ interface ReoptimizePipelineModalProps {
 }
 
 const PIPELINE_STEPS = [
-  { id: 1, title: 'SIGNAL DETECTED', desc: 'SerpApi News & Traffic alert intercepted on highway corridor', icon: Radio, color: 'text-brand-orange' },
+  { id: 1, title: 'SIGNAL DETECTED', desc: 'Live news & traffic disruption alert intercepted on active route corridor', icon: Radio, color: 'text-brand-orange' },
   { id: 2, title: '14 ROUTES ANALYZED', desc: 'Ingested multimodal candidate combinations (Rail, Bus, Cab, Metro)', icon: Cpu, color: 'text-brand-cyan' },
   { id: 3, title: '7 PASS HARD CONSTRAINTS', desc: '7 routes eliminated due to budget, arrival buffer, or walking ceiling', icon: Filter, color: 'text-brand-emerald' },
-  { id: 4, title: '3 ELEVATED DISRUPTION RISK', desc: 'Highway routes penalized due to Khandala Ghat +60 min delay exposure', icon: AlertTriangle, color: 'text-brand-rose' },
+  { id: 4, title: '3 ELEVATED DISRUPTION RISK', desc: 'High-traffic corridor routes penalized due to delay exposure on active segments', icon: AlertTriangle, color: 'text-brand-rose' },
   { id: 5, title: 'RE-OPTIMIZING PARETO OBJECTIVES', desc: 'Recalculating multi-objective composite weights and confidence scores', icon: RefreshCw, color: 'text-amber-400' },
-  { id: 6, title: 'NEW BEST DECISION FINALIZED', desc: 'Pivoting to Deccan Rail + Auto (+42 min arrival safety buffer)', icon: CheckCircle2, color: 'text-brand-emerald' },
+  { id: 6, title: 'NEW BEST DECISION FINALIZED', desc: 'Optimal route selected with maximum arrival buffer and minimum disruption risk', icon: CheckCircle2, color: 'text-brand-emerald' },
 ];
 
 export const ReoptimizePipelineModal: React.FC<ReoptimizePipelineModalProps> = ({
