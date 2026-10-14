@@ -22,6 +22,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import L from 'leaflet';
+import { resolveLocationCoords } from '../services/locationCoords';
 
 interface RightResultsDashboardProps {
   request: JourneyRequest;
@@ -61,29 +62,8 @@ export const RightResultsDashboard: React.FC<RightResultsDashboardProps> = ({
   const bufferMins = route.arrival_buffer_minutes || 42;
   const budgetSaved = Math.max(0, request.max_budget - route.estimated_cost);
 
-  // Resolve lat/lng from a location name string via session cache or lat,lng format
-  const resolveCoords = (name: string): [number, number] | null => {
-    if (!name) return null;
-    const lower = name.toLowerCase().trim();
-    // Direct "lat, lon" format
-    const commaMatch = lower.match(/^([-+]?[0-9]*\.?[0-9]+)\s*,\s*([-+]?[0-9]*\.?[0-9]+)$/);
-    if (commaMatch) {
-      const lat = parseFloat(commaMatch[1]);
-      const lon = parseFloat(commaMatch[2]);
-      if (!isNaN(lat) && !isNaN(lon)) return [lat, lon];
-    }
-    // Session storage fallback
-    try {
-      const cached = sessionStorage.getItem('routewise_user_coords');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (parsed.name && (lower.includes(parsed.name.toLowerCase()) || lower.includes('current location'))) {
-          return [parsed.latitude, parsed.longitude];
-        }
-      }
-    } catch (_) {}
-    return null;
-  };
+  // Resolve lat/lng from a location name string via unified service (150+ hubs, session storage, GPS)
+  const resolveCoords = resolveLocationCoords;
 
   // Initialize and update Leaflet Map dynamically from route segments
   useEffect(() => {

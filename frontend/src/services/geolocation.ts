@@ -135,11 +135,11 @@ async function getIPLocation(): Promise<DetectedLocation> {
     console.warn('IP geolocation failed', err);
   }
 
-  // Default fallback if all fails (Rabale, Navi Mumbai)
+  // Default fallback if all fails
   return {
-    name: 'Rabale, Navi Mumbai',
-    latitude: 19.1363,
-    longitude: 72.9984,
+    name: 'Current Location',
+    latitude: 20.5937,
+    longitude: 78.9629,
     source: 'cached',
   };
 }
