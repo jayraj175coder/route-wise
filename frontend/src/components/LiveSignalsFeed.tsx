@@ -29,7 +29,7 @@ export const LiveSignalsFeed: React.FC<{ hasDisruption: boolean }> = ({ hasDisru
       status: hasDisruption ? 'incident_detected' : 'clear',
       statusText: hasDisruption ? 'Disruption Detected' : 'No Critical Incidents',
       details: hasDisruption
-        ? 'Active report: Severe Khandala Ghat blockage on Expressway (+65m delay exposure).'
+        ? 'Active report: Significant disruption detected on key corridor segment (+60m delay exposure).'
         : 'Scanned 14 local news feeds for railway strikes, track faults, and road closures.',
       timestamp: hasDisruption ? 'Just now' : '3m ago',
     },
