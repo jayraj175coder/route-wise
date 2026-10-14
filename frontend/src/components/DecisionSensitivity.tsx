@@ -3,29 +3,33 @@ import { HelpCircle, ArrowUpRight, TrendingUp } from 'lucide-react';
 import { CandidateRoute } from '../types/journey';
 
 export const DecisionSensitivity: React.FC<{ route: CandidateRoute }> = ({ route }) => {
+  const walkingToStation = Math.round(route.walking_distance_meters * 1.2);
+  const cabCostBuffer = Math.round(route.estimated_cost * 1.35);
+  const budgetTipPoint = Math.round(route.estimated_cost - 20);
+
   const sensitivityThresholds = [
     {
-      condition: 'Train delay > 18 mins',
+      condition: `Transit delay > ${Math.round(route.arrival_buffer_minutes * 0.4)} mins`,
       result: 'Direct Private Cab becomes the faster journey',
-      rationale: 'Current rail buffer of 42m shrinks below cab travel duration.',
+      rationale: `Current buffer of ${route.arrival_buffer_minutes}m shrinks below cab travel duration — triggering a mode switch.`,
       shiftSeverity: 'moderate',
     },
     {
-      condition: 'Budget ceiling dropped < ₹650',
-      result: 'Highway Express Bus becomes mandatory',
-      rationale: 'Rail + Auto combination (₹670) violates the strict budget constraint.',
+      condition: `Budget ceiling dropped < ₹${budgetTipPoint}`,
+      result: 'Highway Express Bus or cheaper alternative becomes mandatory',
+      rationale: `Current combination (₹${Math.round(route.estimated_cost)}) would violate the strict budget constraint.`,
       shiftSeverity: 'high',
     },
     {
       condition: 'Expressway traffic slowdown > 25%',
-      result: 'Rail advantage expands to +55 mins',
-      rationale: 'Highway transit enters high-congestion gridlock while rail remains on scheduled track.',
+      result: `Rail advantage expands to +${Math.round(route.arrival_buffer_minutes * 1.3)} mins`,
+      rationale: 'Highway transit enters high-congestion gridlock while rail remains on scheduled right-of-way.',
       shiftSeverity: 'low',
     },
     {
-      condition: 'Walking tolerance reduced to < 350m',
-      result: 'Station feeder connection shifts to direct doorstep auto',
-      rationale: 'Walking distance (480m) to station platform violates low-walking constraint.',
+      condition: `Walking tolerance reduced to < ${Math.round(route.walking_distance_meters * 0.7)}m`,
+      result: 'Station feeder connection shifts to direct doorstep cab',
+      rationale: `Walking distance (${route.walking_distance_meters}m) to boarding point violates the tighter walking constraint.`,
       shiftSeverity: 'moderate',
     },
   ];
